@@ -849,6 +849,30 @@
       z-index: 1;
       display: flex;
       justify-content: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .app-alert-input-wrap {
+      position: relative;
+      z-index: 1;
+      margin-bottom: 16px;
+    }
+
+    .app-alert-input {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.03);
+      color: #fff;
+      padding: 12px 14px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .app-alert-input:focus {
+      border-color: rgba(245,197,24,0.55);
+      box-shadow: 0 0 0 2px rgba(245,197,24,0.15);
     }
 
     @media (max-width: 700px) {
@@ -1198,7 +1222,11 @@
   <div class="app-alert-box" role="dialog" aria-modal="true" aria-labelledby="appAlertTitle" aria-describedby="appAlertMessage">
     <div id="appAlertTitle" class="app-alert-title">تنويه</div>
     <div id="appAlertMessage" class="app-alert-message"></div>
+    <div id="appAlertInputWrap" class="app-alert-input-wrap hidden">
+      <input id="appAlertInput" class="app-alert-input" type="text" />
+    </div>
     <div class="app-alert-actions">
+      <button id="appAlertCancelBtn" class="chip hidden">إلغاء</button>
       <button id="appAlertOkBtn" class="btn-green">موافق</button>
     </div>
   </div>
@@ -1371,21 +1399,98 @@ let ratingsListener = null;
 let forcingLogoutByCodeChange = false;
 let restoringSessionInProgress = false;
 let currentEvaluationContext = { roundKey: "", players: [], roundLabel: "", mode: "" };
+let appDialogResolver = null;
+let appDialogMode = "alert";
+
+function resolveAppDialog(payload){
+  const resolver = appDialogResolver;
+  appDialogResolver = null;
+  appDialogMode = "alert";
+  if(typeof resolver === "function") resolver(payload);
+}
+
+function configureAppDialog({ title = "تنويه", message = "", okText = "موافق", cancelText = "إلغاء", showCancel = false, input = null } = {}){
+  const modal = document.getElementById("appAlertModal");
+  const titleEl = document.getElementById("appAlertTitle");
+  const messageEl = document.getElementById("appAlertMessage");
+  const okBtn = document.getElementById("appAlertOkBtn");
+  const cancelBtn = document.getElementById("appAlertCancelBtn");
+  const inputWrap = document.getElementById("appAlertInputWrap");
+  const inputEl = document.getElementById("appAlertInput");
+  if(!modal || !titleEl || !messageEl || !okBtn || !cancelBtn || !inputWrap || !inputEl) return false;
+
+  titleEl.textContent = String(title || "تنويه");
+  messageEl.textContent = String(message || "");
+  okBtn.textContent = String(okText || "موافق");
+  cancelBtn.textContent = String(cancelText || "إلغاء");
+  cancelBtn.classList.toggle("hidden", !showCancel);
+
+  if(input && typeof input === "object"){
+    inputWrap.classList.remove("hidden");
+    inputEl.type = input.type === "password" ? "password" : "text";
+    inputEl.placeholder = String(input.placeholder || "");
+    inputEl.value = String(input.value || "");
+  } else {
+    inputWrap.classList.add("hidden");
+    inputEl.value = "";
+  }
+
+  modal.classList.remove("hidden");
+  return true;
+}
 
 function closeAppAlert(){
   const modal = document.getElementById("appAlertModal");
   if(modal) modal.classList.add("hidden");
+
+  if(appDialogMode === "confirm") resolveAppDialog(false);
+  else if(appDialogMode === "prompt") resolveAppDialog({ confirmed: false, value: null });
+  else resolveAppDialog(true);
 }
 
 function showAppAlert(message, title = "تنويه"){
-  const modal = document.getElementById("appAlertModal");
-  const titleEl = document.getElementById("appAlertTitle");
-  const messageEl = document.getElementById("appAlertMessage");
-  if(!modal || !titleEl || !messageEl) return;
+  appDialogMode = "alert";
+  configureAppDialog({ title, message, okText: "موافق", showCancel: false });
+}
 
-  titleEl.textContent = String(title || "تنويه");
-  messageEl.textContent = String(message || "");
-  modal.classList.remove("hidden");
+function showAppConfirm(message, title = "تأكيد"){
+  appDialogMode = "confirm";
+  const configured = configureAppDialog({
+    title,
+    message,
+    okText: "موافق",
+    cancelText: "إلغاء الأمر",
+    showCancel: true
+  });
+  if(!configured) return Promise.resolve(false);
+
+  return new Promise(resolve => {
+    appDialogResolver = resolve;
+  });
+}
+
+function showAppPrompt(message, title = "إدخال", options = {}){
+  appDialogMode = "prompt";
+  const configured = configureAppDialog({
+    title,
+    message,
+    okText: String(options.okText || "حفظ"),
+    cancelText: String(options.cancelText || "إلغاء"),
+    showCancel: true,
+    input: {
+      type: options.type === "password" ? "password" : "text",
+      placeholder: String(options.placeholder || ""),
+      value: String(options.value || "")
+    }
+  });
+  if(!configured) return Promise.resolve({ confirmed: false, value: null });
+
+  const inputEl = document.getElementById("appAlertInput");
+  setTimeout(() => { if(inputEl) inputEl.focus(); }, 0);
+
+  return new Promise(resolve => {
+    appDialogResolver = resolve;
+  });
 }
 
 // Unify alerts with the app theme instead of browser default dialogs.
@@ -2244,8 +2349,9 @@ async function drawTeams(){
   document.getElementById("pitchBlack").scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   // تنبيه للإرسال للواتساب فوراً بعد القرعة
-  setTimeout(() => {
-    if(confirm("✅ تم اعتماد التشكيلة بنجاح!\nهل تريد إرسال التشكيلة الآن إلى قروب الواتساب مباشرة؟")) {
+  setTimeout(async () => {
+    const shouldShare = await showAppConfirm("✅ تم اعتماد التشكيلة بنجاح!\nهل تريد إرسال التشكيلة الآن إلى قروب الواتساب مباشرة؟", "تأكيد");
+    if(shouldShare) {
       document.getElementById("shareToGroupBtn").click();
     }
   }, 500);
@@ -2356,7 +2462,8 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
 
 async function deleteMatch(index){ 
   if(!adminMode) return; 
-  if(!confirm("هل أنت متأكد من مسح هذه المباراة؟ سيتم إعادة حساب جميع النقاط.")) return; 
+  const confirmed = await showAppConfirm("هل أنت متأكد من مسح هذه المباراة؟ سيتم إعادة حساب جميع النقاط.", "تأكيد الحذف");
+  if(!confirmed) return; 
   state.matches.splice(index,1); 
   rebuildFromMatches(state.matches); 
   await writeState(); 
@@ -2624,10 +2731,11 @@ async function clearEvaluationRound(){
   const { roundKey, roundLabel } = currentEvaluationContext;
   if(!roundKey) return alert("لا توجد جولة تقييم متاحة للمسح.");
 
-  const confirmed = confirm(`هل أنت متأكد من مسح جميع تقييمات (${roundLabel || "هذه الجولة"})؟\nلن يمكن التراجع عن هذا الإجراء.`);
+  const confirmed = await showAppConfirm(`هل أنت متأكد من مسح جميع تقييمات (${roundLabel || "هذه الجولة"})؟\nلن يمكن التراجع عن هذا الإجراء.`, "تأكيد المسح");
   if(!confirmed) return;
 
   try {
+    // Try full round delete first.
     await db.ref(`${RATINGS_PATH}/${roundKey}`).remove();
     try { localStorage.removeItem(getEvaluationVoteStorageKey(roundKey)); }
     catch(e) { console.warn("تعذر مسح حالة التصويت المحلية", e); }
@@ -2636,7 +2744,26 @@ async function clearEvaluationRound(){
     renderEvaluation();
   } catch (error) {
     console.error(error);
-    alert("تعذر مسح تقييم الجولة حالياً.");
+
+    // Fallback: if rules block parent delete, try removing votes only.
+    try {
+      await db.ref(`${RATINGS_PATH}/${roundKey}/votes`).remove();
+      await db.ref(`${RATINGS_PATH}/${roundKey}/applied`).set(false);
+      try { localStorage.removeItem(getEvaluationVoteStorageKey(roundKey)); }
+      catch(e) { console.warn("تعذر مسح حالة التصويت المحلية", e); }
+
+      alert("تم مسح الأصوات بنجاح (حذف جزئي بسبب صلاحيات القواعد).");
+      renderEvaluation();
+      return;
+    } catch (fallbackError) {
+      console.error(fallbackError);
+      const msg = String(fallbackError?.message || error?.message || "").toLowerCase();
+      if(msg.includes("permission_denied")) {
+        alert("لا يمكن مسح التقييم حالياً لأن قواعد Firebase تمنع الحذف حتى للأدمن.");
+      } else {
+        alert("تعذر مسح تقييم الجولة حالياً.");
+      }
+    }
   }
 }
 
@@ -2775,7 +2902,8 @@ window.uploadPlayerImageFile = uploadPlayerImageFile;
 async function regenerateCode(playerName) {
   if(!adminMode) return;
   const newCode = generateRandomCode();
-  if(confirm(`هل أنت متأكد من تغيير الكود السري للاعب (${playerName}) إلى [ ${newCode} ]؟\nملاحظة: تأكد من إعطاء اللاعب الكود الجديد.`)) {
+  const confirmed = await showAppConfirm(`هل أنت متأكد من تغيير الكود السري للاعب (${playerName}) إلى [ ${newCode} ]؟\nملاحظة: تأكد من إعطاء اللاعب الكود الجديد.`, "تأكيد تغيير الكود");
+  if(confirmed) {
     try {
       await db.ref(CODES_PATH + "/" + playerName).set(newCode);
       adminCodes[playerName] = newCode;
@@ -2793,16 +2921,22 @@ window.regenerateCode = regenerateCode;
 // تخصيص كود مخصص للاعب
 async function setCustomCode(playerName) {
   if(!adminMode) return;
-  const customCode = prompt(`أدخل الكود السري المخصص للاعب (${playerName}):\n(أرقام فقط، بحد أدنى 4 أرقام)`);
+  const input = await showAppPrompt(
+    `أدخل الكود السري المخصص للاعب (${playerName}):\n(أرقام فقط، بحد أدنى 4 أرقام)`,
+    "تخصيص كود اللاعب",
+    { placeholder: "مثال: 1234", okText: "تعيين" }
+  );
   
-  if(customCode === null) return; // المستخدم اختار الإلغاء
+  if(!input.confirmed) return;
+  const customCode = input.value;
   
   const normalized = normalizeCode(customCode);
   if(!normalized || normalized.length < 4) {
     return alert("الخطأ: الكود يجب أن يكون أرقام فقط وبحد أدنى 4 أرقام.");
   }
   
-  if(confirm(`هل أنت متأكد من تعيين الكود [ ${normalized} ] للاعب (${playerName})?\nملاحظة: تأكد من إعطاء اللاعب الكود الصحيح.`)) {
+  const confirmed = await showAppConfirm(`هل أنت متأكد من تعيين الكود [ ${normalized} ] للاعب (${playerName})?\nملاحظة: تأكد من إعطاء اللاعب الكود الصحيح.`, "تأكيد تعيين الكود");
+  if(confirmed) {
     try {
       await db.ref(CODES_PATH + "/" + playerName).set(normalized);
       adminCodes[playerName] = normalized;
@@ -2853,7 +2987,8 @@ document.getElementById("addPlayerBtn").addEventListener("click", addPlayer);
 async function deletePlayer(index){ 
   if(!adminMode) return; 
   const player=state.players[index]; 
-  if(!confirm(`تحذير: هل أنت متأكد من حذف اللاعب (${player.name}) نهائياً؟`)) return; 
+  const confirmed = await showAppConfirm(`تحذير: هل أنت متأكد من حذف اللاعب (${player.name}) نهائياً؟`, "تأكيد حذف اللاعب");
+  if(!confirmed) return; 
   
   const was10 = state.registrations.length === 10;
 
@@ -2883,7 +3018,8 @@ window.deletePlayer=deletePlayer;
 // إنهاء الموسم
 document.getElementById("newSeasonBtn").addEventListener("click", async ()=>{ 
   if(!adminMode) return; 
-  if(!confirm("هل أنت متأكد من إنهاء الموسم الحالي ونقل النتائج للأرشيف وتصفير جميع النقاط؟")) return;
+  const confirmed = await showAppConfirm("هل أنت متأكد من إنهاء الموسم الحالي ونقل النتائج للأرشيف وتصفير جميع النقاط؟", "تأكيد إنهاء الموسم");
+  if(!confirmed) return;
   
   if(state.matches.length){ 
     state.seasonArchive.push({ 
@@ -3063,7 +3199,43 @@ document.getElementById("submitEvaluationBtn").addEventListener("click", submitE
 document.getElementById("applyEvaluationImpactBtn").addEventListener("click", applyEvaluationImpact);
 document.getElementById("clearEvaluationRoundBtn").addEventListener("click", clearEvaluationRound);
 
-document.getElementById("appAlertOkBtn").addEventListener("click", closeAppAlert);
+document.getElementById("appAlertOkBtn").addEventListener("click", () => {
+  const modal = document.getElementById("appAlertModal");
+  if(modal) modal.classList.add("hidden");
+
+  if(appDialogMode === "confirm") {
+    resolveAppDialog(true);
+    return;
+  }
+
+  if(appDialogMode === "prompt") {
+    const inputEl = document.getElementById("appAlertInput");
+    resolveAppDialog({ confirmed: true, value: inputEl ? inputEl.value : "" });
+    return;
+  }
+
+  resolveAppDialog(true);
+});
+
+document.getElementById("appAlertCancelBtn").addEventListener("click", () => {
+  const modal = document.getElementById("appAlertModal");
+  if(modal) modal.classList.add("hidden");
+
+  if(appDialogMode === "prompt") {
+    resolveAppDialog({ confirmed: false, value: null });
+    return;
+  }
+
+  resolveAppDialog(false);
+});
+
+document.getElementById("appAlertInput").addEventListener("keydown", (event) => {
+  if(event.key === "Enter") {
+    event.preventDefault();
+    document.getElementById("appAlertOkBtn").click();
+  }
+});
+
 document.getElementById("appAlertModal").addEventListener("click", (event) => {
   if(event.target && event.target.id === "appAlertModal") closeAppAlert();
 });
