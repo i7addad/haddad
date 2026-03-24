@@ -784,6 +784,78 @@
       }
     }
 
+    /* ─── APP ALERT MODAL ───────────────────────── */
+    .app-alert-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      z-index: 10020;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .app-alert-box {
+      width: min(95vw, 520px);
+      border-radius: 18px;
+      border: 1px solid rgba(245,197,24,0.2);
+      background: linear-gradient(165deg, rgba(20, 20, 28, 0.98), rgba(10, 10, 14, 0.98));
+      box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+      padding: 20px;
+      animation: fadeUp 0.24s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-alert-box::before {
+      content: "";
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 230px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(245,197,24,0.2) 0%, transparent 68%);
+      pointer-events: none;
+      opacity: 0.24;
+      filter: blur(8px);
+    }
+
+    .app-alert-title {
+      position: relative;
+      z-index: 1;
+      font-size: 20px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .app-alert-message {
+      position: relative;
+      z-index: 1;
+      color: #d7dbe2;
+      line-height: 1.9;
+      font-size: 16px;
+      white-space: pre-wrap;
+      margin-bottom: 16px;
+    }
+
+    .app-alert-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    @media (max-width: 700px) {
+      .app-alert-title { font-size: 18px; }
+      .app-alert-message { font-size: 15px; }
+    }
+
     /* ─── RESPONSIVE ──────────────────────────────── */
     @media (max-width: 900px) {
       .pitch { height: 580px; }
@@ -1105,6 +1177,17 @@
   </div>
 </div>
 
+<!-- نافذة تنبيه موحدة بنفس تصميم الموقع -->
+<div id="appAlertModal" class="app-alert-modal hidden">
+  <div class="app-alert-box" role="dialog" aria-modal="true" aria-labelledby="appAlertTitle" aria-describedby="appAlertMessage">
+    <div id="appAlertTitle" class="app-alert-title">تنويه</div>
+    <div id="appAlertMessage" class="app-alert-message"></div>
+    <div class="app-alert-actions">
+      <button id="appAlertOkBtn" class="btn-green">موافق</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -1262,6 +1345,27 @@ let playerQueue = {};
 let sessionListener = null;
 let lastAutoDrawRegistrationSignature = "";
 let autoDrawInProgress = false;
+
+function closeAppAlert(){
+  const modal = document.getElementById("appAlertModal");
+  if(modal) modal.classList.add("hidden");
+}
+
+function showAppAlert(message, title = "تنويه"){
+  const modal = document.getElementById("appAlertModal");
+  const titleEl = document.getElementById("appAlertTitle");
+  const messageEl = document.getElementById("appAlertMessage");
+  if(!modal || !titleEl || !messageEl) return;
+
+  titleEl.textContent = String(title || "تنويه");
+  messageEl.textContent = String(message || "");
+  modal.classList.remove("hidden");
+}
+
+// Unify alerts with the app theme instead of browser default dialogs.
+window.alert = function(message){
+  showAppAlert(message, "تنويه");
+};
 
 function getPlayerReminderContext(){
   if(!currentPlayerName || adminMode) return null;
@@ -2417,6 +2521,17 @@ document.getElementById("playerReminderOkBtn").addEventListener("click", () => c
 
 document.getElementById("playerReminderModal").addEventListener("click", (event) => {
   if(event.target && event.target.id === "playerReminderModal") closePlayerReminder(true);
+});
+
+document.getElementById("appAlertOkBtn").addEventListener("click", closeAppAlert);
+document.getElementById("appAlertModal").addEventListener("click", (event) => {
+  if(event.target && event.target.id === "appAlertModal") closeAppAlert();
+});
+
+document.addEventListener("keydown", (event) => {
+  if(event.key === "Escape") {
+    closeAppAlert();
+  }
 });
 
 // ==========================================
