@@ -1969,16 +1969,25 @@ async function playerLogin(){
 document.getElementById("playerLoginBtn").addEventListener("click", playerLogin);
 
 async function performPlayerLogout(){
-  if(!currentUserUid) return;
+  const uid = currentUserUid;
+  clearPlayerCredentials();
+
+  // Do not block logout if DB session cleanup is denied by rules.
+  if(uid){
+    try {
+      await db.ref(`${PLAYER_SESSION_PATH}/${uid}`).remove();
+    } catch (error) {
+      console.warn("Session cleanup skipped during logout:", error?.message || error);
+    }
+  }
+
   try {
-    clearPlayerCredentials();
-    await db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).remove();
     await auth.signOut();
     await ensureAnonymousPlayerSession();
     alert("تم تسجيل خروج اللاعب.");
   } catch (error) {
     console.error(error);
-    alert("تعذر تسجيل خروج اللاعب حالياً.");
+    alert("تعذر إكمال تسجيل الخروج حالياً. أعد تحديث الصفحة وحاول مرة أخرى.");
   }
 }
 document.getElementById("playerLogoutBtn").addEventListener("click", performPlayerLogout);
