@@ -2470,12 +2470,17 @@ function renderEvaluation(){
 
 async function submitEvaluation(){
   const { roundKey, players, round, mode } = currentEvaluationContext;
-  if(!roundKey || !players.length) return alert("لا توجد مباراة جاهزة للتقييم حالياً.");
+  if(!roundKey || !players || !players.length) {
+    console.error("Invalid context:", { roundKey, players });
+    return alert("لا توجد مباراة جاهزة للتقييم حالياً.");
+  }
   if(!currentPlayerName) return alert("سجل دخولك كلاعب أولاً لإرسال التقييم.");
   if(hasSubmittedEvaluation(roundKey)) return alert("تم إرسال تقييمك مسبقاً لهذه الجولة.");
 
   try {
-    // First, save round metadata without players array (Firebase doesn't support arrays)
+    console.log("Starting evaluation submission:", { roundKey, playerCount: players.length });
+    
+    // First, save round metadata
     const metadata = {
       seasonNumber: state.seasonNumber,
       round: Number(round) || 1,
@@ -2483,35 +2488,56 @@ async function submitEvaluation(){
       applied: !!getRoundRatingEntry(roundKey).applied,
       updatedAt: firebase.database.ServerValue.TIMESTAMP
     };
-    await db.ref(`${RATINGS_PATH}/${roundKey}`).update(metadata);
+    try {
+      await db.ref(`${RATINGS_PATH}/${roundKey}`).update(metadata);
+      console.log("Round metadata saved");
+    } catch (metaError) {
+      // Some Firebase rules may allow writes to votes only; continue with vote submission.
+      console.warn("Round metadata write skipped:", metaError?.message || metaError);
+    }
 
-    // Then submit votes for each player
-    const votePromises = players.map(async (name, idx) => {
+    // Then submit votes for each player - no async mapping, do it sequentially
+    let submittedVotes = 0;
+    for(let idx = 0; idx < players.length; idx++) {
+      const name = players[idx];
       const slider = document.getElementById(`eval-${idx}`);
-      if(!slider) return; // Skip if slider doesn't exist
+      if(!slider) {
+        console.warn(`Slider not found for player ${idx}: ${name}`);
+        continue; 
+      }
       const score = Math.min(10, Math.max(1, Number(slider.value || 7)));
       const encodedKey = encodeURIComponent(normalizeName(name));
       
-      return new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         db.ref(`${RATINGS_PATH}/${roundKey}/votes/${encodedKey}`).transaction(current => {
           const sum = Number(current?.sum) || 0;
           const count = Number(current?.count) || 0;
           return { sum: sum + score, count: count + 1 };
         }, (error, committed, snapshot) => {
-          if(error) reject(error);
-          else resolve(snapshot.val());
+          if(error) {
+            console.error(`Vote submission error for ${name}:`, error);
+            reject(error);
+          } else if(!committed) {
+            reject(new Error(`Vote transaction not committed for ${name}`));
+          } else {
+            console.log(`Vote submitted for ${name}: ${score}/10`);
+            submittedVotes += 1;
+            resolve(snapshot.val());
+          }
         });
       });
-    });
+    }
 
-    await Promise.all(votePromises);
+    if(!submittedVotes) {
+      throw new Error("لم يتم حفظ أي تصويت. غالباً صلاحيات Firebase تمنع الكتابة.");
+    }
 
     markEvaluationSubmitted(roundKey);
     alert("شكراً! تم إرسال تقييمك بشكل مجهول.");
     renderEvaluation();
   } catch (error) {
     console.error("Evaluation submission error:", error);
-    alert("تعذر إرسال التقييم حالياً. حاول مرة أخرى.");
+    alert("تعذر إرسال التقييم حالياً. حاول مرة أخرى.\nالخطأ: " + (error.message || error));
   }
 }
 
