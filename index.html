@@ -896,6 +896,7 @@
           <button class="chip active" data-tab="league">الملعب والتشكيلة</button>
           <button class="chip" data-tab="matches">المباريات</button>
           <button class="chip" data-tab="stats">الترتيب</button>
+          <button class="chip" data-tab="evaluation">التقييم</button>
           <button class="chip" data-tab="archive">الأرشيف</button>
           <button class="chip hidden" id="adminTabBtn" data-tab="admin" style="border-color:var(--gold);color:var(--gold);">⚙️ الإدارة</button>
         </div>
@@ -1051,6 +1052,20 @@
           <thead><tr><th>المركز</th><th>اللاعب</th><th class="center">مباريات</th><th class="center" style="color:var(--success)">فوز</th><th class="center" style="color:var(--danger)">خسارة</th><th class="center" style="color:var(--gold)">النقاط</th></tr></thead>
           <tbody id="statsTableBody"></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- تقييم اللاعبين بعد كل مباراة -->
+  <section id="tab-evaluation" class="hidden">
+    <div class="card">
+      <h2 style="color: var(--gold)">⭐ تقييم لاعبي المباراة</h2>
+      <div class="small" id="evaluationStatus" style="margin-bottom:14px">قيّم لاعبي آخر مباراة بشكل مجهول من 1 إلى 10.</div>
+      <div id="evaluationTop" class="small" style="margin-bottom:12px"></div>
+      <div id="evaluationGrid"></div>
+      <div class="actions" id="evaluationActions" style="margin-top:14px">
+        <button id="submitEvaluationBtn" class="btn-green">إرسال التقييم</button>
+        <button id="applyEvaluationImpactBtn" class="btn-blue hidden">اعتماد تأثير التقييم على تقييم اللاعبين</button>
       </div>
     </div>
   </section>
@@ -1213,6 +1228,8 @@ const LEAGUE_PATH = "league/state";
 const CODES_PATH = "playerCodes";
 const PLAYER_QUEUE_PATH = "league/playerQueue";
 const PLAYER_SESSION_PATH = "playerSessions";
+const RATINGS_PATH = "league/ratings";
+const PLAYER_CREDENTIALS_KEY = "playerCredentials_v1";
 
 // هيكل البيانات الافتراضي مع معلومات المباراة (الجديد)
 const defaultState = { 
@@ -1345,6 +1362,14 @@ let playerQueue = {};
 let sessionListener = null;
 let lastAutoDrawRegistrationSignature = "";
 let autoDrawInProgress = false;
+let currentPlayerCode = null;
+let publicCodes = {};
+let publicCodesListener = null;
+let ratingsState = {};
+let ratingsListener = null;
+let forcingLogoutByCodeChange = false;
+let restoringSessionInProgress = false;
+let currentEvaluationContext = { roundKey: "", players: [] };
 
 function closeAppAlert(){
   const modal = document.getElementById("appAlertModal");
@@ -1366,6 +1391,175 @@ function showAppAlert(message, title = "تنويه"){
 window.alert = function(message){
   showAppAlert(message, "تنويه");
 };
+
+function savePlayerCredentials(name, code){
+  try {
+    localStorage.setItem(PLAYER_CREDENTIALS_KEY, JSON.stringify({
+      name: normalizeName(name),
+      code: normalizeCode(code)
+    }));
+  } catch (e) {
+    console.warn("تعذر حفظ بيانات جلسة اللاعب", e);
+  }
+}
+
+function readPlayerCredentials(){
+  try {
+    const raw = localStorage.getItem(PLAYER_CREDENTIALS_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    const name = normalizeName(parsed?.name || "");
+    const code = normalizeCode(parsed?.code || "");
+    if(!name || !code) return null;
+    return { name, code };
+  } catch {
+    return null;
+  }
+}
+
+function clearPlayerCredentials(){
+  try { localStorage.removeItem(PLAYER_CREDENTIALS_KEY); }
+  catch(e) { console.warn("تعذر حذف بيانات جلسة اللاعب", e); }
+}
+
+function getRatingRoundKey(round){
+  return `s${state.seasonNumber}_r${round}`;
+}
+
+function getLatestRatedMatch(){
+  return state.matches.length ? state.matches[state.matches.length - 1] : null;
+}
+
+function getRoundRatingEntry(roundKey){
+  const entry = ratingsState && typeof ratingsState === "object" ? ratingsState[roundKey] : null;
+  return entry && typeof entry === "object" ? entry : { votes: {}, players: [], applied: false };
+}
+
+function getPlayerRoundRating(roundKey, playerName){
+  const entry = getRoundRatingEntry(roundKey);
+  const encodedKey = encodeURIComponent(normalizeName(playerName));
+  const vote = entry.votes && typeof entry.votes === "object"
+    ? (entry.votes[encodedKey] || entry.votes[playerName])
+    : null;
+  const sum = Number(vote?.sum) || 0;
+  const count = Number(vote?.count) || 0;
+  const avg = count ? (sum / count) : 0;
+  return { sum, count, avg };
+}
+
+function getEvaluationVoteStorageKey(roundKey){
+  return `evaluationVote_${roundKey}`;
+}
+
+function hasSubmittedEvaluation(roundKey){
+  try { return localStorage.getItem(getEvaluationVoteStorageKey(roundKey)) === "1"; }
+  catch { return false; }
+}
+
+function markEvaluationSubmitted(roundKey){
+  try { localStorage.setItem(getEvaluationVoteStorageKey(roundKey), "1"); }
+  catch(e) { console.warn("تعذر حفظ حالة التقييم", e); }
+}
+
+function listenPublicCodes(){
+  if(publicCodesListener) return;
+  publicCodesListener = snapshot => {
+    publicCodes = snapshot.val() || {};
+    validateCurrentPlayerCodeSession();
+  };
+  db.ref(CODES_PATH).on("value", publicCodesListener);
+}
+
+function listenRatings(){
+  if(ratingsListener) return;
+  ratingsListener = snapshot => {
+    ratingsState = snapshot.val() || {};
+    renderAll();
+  };
+  db.ref(RATINGS_PATH).on("value", ratingsListener, err => console.error(err));
+}
+
+async function forceLogoutDuePasswordChange(){
+  if(forcingLogoutByCodeChange) return;
+  forcingLogoutByCodeChange = true;
+  try {
+    clearPlayerCredentials();
+    const uid = currentUserUid;
+    if(uid) {
+      try { await db.ref(`${PLAYER_SESSION_PATH}/${uid}`).remove(); }
+      catch(e) { console.warn("تعذر حذف جلسة اللاعب السابقة", e); }
+    }
+    await auth.signOut();
+    await ensureAnonymousPlayerSession();
+    alert("تم تغيير الباسوورد من قبل الإدارة. الرجاء التواصل مع الدعم الفني.");
+  } catch (error) {
+    console.error(error);
+  } finally {
+    forcingLogoutByCodeChange = false;
+  }
+}
+
+function validateCurrentPlayerCodeSession(){
+  if(adminMode || !currentPlayerName || !currentPlayerCode || forcingLogoutByCodeChange) return;
+  const expectedCode = normalizeCode(publicCodes[currentPlayerName] || "");
+  if(!expectedCode) return;
+  if(expectedCode !== normalizeCode(currentPlayerCode)) {
+    forceLogoutDuePasswordChange();
+  }
+}
+
+async function restorePlayerSessionIfPossible(){
+  if(restoringSessionInProgress || adminMode || currentPlayerName || !currentUserUid) return;
+  const creds = readPlayerCredentials();
+  if(!creds) return;
+
+  const expectedCode = normalizeCode(publicCodes[creds.name] || "");
+  if(expectedCode && expectedCode !== creds.code){
+    clearPlayerCredentials();
+    alert("تم تغيير الباسوورد من قبل الإدارة. الرجاء التواصل مع الدعم الفني.");
+    return;
+  }
+
+  restoringSessionInProgress = true;
+  try {
+    await db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).set({
+      playerName: creds.name,
+      code: creds.code,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+  } catch (error) {
+    console.error(error);
+  } finally {
+    restoringSessionInProgress = false;
+  }
+}
+
+async function initRoundRatings(roundNumber, players){
+  if(!roundNumber || !Array.isArray(players) || !players.length) return;
+  const roundKey = getRatingRoundKey(roundNumber);
+  const uniquePlayers = [...new Set(players.map(normalizeName).filter(Boolean))];
+  await db.ref(`${RATINGS_PATH}/${roundKey}`).transaction(current => {
+    if(current && typeof current === "object") {
+      const currentPlayers = Array.isArray(current.players) ? current.players.map(normalizeName).filter(Boolean) : [];
+      const mergedPlayers = [...new Set([...currentPlayers, ...uniquePlayers])];
+      return {
+        ...current,
+        players: mergedPlayers,
+        seasonNumber: state.seasonNumber,
+        round: roundNumber
+      };
+    }
+
+    return {
+      seasonNumber: state.seasonNumber,
+      round: roundNumber,
+      players: uniquePlayers,
+      votes: {},
+      applied: false,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    };
+  });
+}
 
 function getPlayerReminderContext(){
   if(!currentPlayerName || adminMode) return null;
@@ -1562,6 +1756,7 @@ function attachPlayerSessionListener(uid){
 
   currentUserUid = uid || null;
   currentPlayerName = null;
+  currentPlayerCode = null;
 
   if (!uid) {
     renderAll();
@@ -1571,6 +1766,11 @@ function attachPlayerSessionListener(uid){
   sessionListener = snapshot => {
     const session = snapshot.val();
     currentPlayerName = normalizeName(session?.playerName || "") || null;
+    currentPlayerCode = normalizeCode(session?.code || "") || null;
+    if(!currentPlayerName && !adminMode) {
+      restorePlayerSessionIfPossible();
+    }
+    validateCurrentPlayerCodeSession();
     renderAll();
   };
 
@@ -1589,6 +1789,9 @@ function ensureAnonymousPlayerSession(){
 auth.onAuthStateChanged(async user => {
   if (user) {
     attachPlayerSessionListener(user.uid);
+    if(!adminMode) {
+      await restorePlayerSessionIfPossible();
+    }
     return;
   }
 
@@ -1603,7 +1806,7 @@ auth.onAuthStateChanged(async user => {
 function setTab(tab){ 
   activeTab = tab; 
   document.querySelectorAll("[data-tab]").forEach(btn => btn.classList.toggle("active", btn.dataset.tab===tab)); 
-  ["league","matches","stats","archive","admin"].forEach(t => document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab)); 
+  ["league","matches","stats","evaluation","archive","admin"].forEach(t => document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab)); 
   if(tab === "admin" && adminMode) renderPlayersAdminList(); 
 }
 document.querySelectorAll("[data-tab]").forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
@@ -1706,12 +1909,27 @@ async function playerLogin(){
 
   if(!sessionUid) return alert("جاري تجهيز جلسة اللاعب، حاول مرة ثانية بعد لحظات.");
 
+  let expectedCode = normalizeCode(publicCodes[name] || "");
+  if(!expectedCode) {
+    try {
+      const codeSnapshot = await db.ref(`${CODES_PATH}/${name}`).get();
+      expectedCode = normalizeCode(codeSnapshot.val() || "");
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  if(!expectedCode || expectedCode !== code) {
+    return alert("الكود السري غير صحيح.");
+  }
+
   try {
     await db.ref(`${PLAYER_SESSION_PATH}/${sessionUid}`).set({
       playerName: name,
       code,
       updatedAt: firebase.database.ServerValue.TIMESTAMP
     });
+    savePlayerCredentials(name, code);
     document.getElementById("playerCodeInput").value = "";
     alert("تم تسجيل دخول اللاعب بنجاح.");
   } catch (error) {
@@ -1724,6 +1942,7 @@ document.getElementById("playerLoginBtn").addEventListener("click", playerLogin)
 async function performPlayerLogout(){
   if(!currentUserUid) return;
   try {
+    clearPlayerCredentials();
     await db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).remove();
     await auth.signOut();
     await ensureAnonymousPlayerSession();
@@ -2045,6 +2264,9 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
   if(!adminMode) return; 
   const a=Number(document.getElementById("scoreA").value), b=Number(document.getElementById("scoreB").value); 
   if(Number.isNaN(a)||Number.isNaN(b)) return alert("الرجاء إدخال النتيجة بشكل أرقام صحيحة"); 
+
+  const completedRound = state.round;
+  const completedMatchPlayers = [...state.teams.A.map(p=>p.name), ...state.teams.B.map(p=>p.name)];
   
   const lateSet=new Set([...lateA,...lateB]), dressSet=new Set([...dressA,...dressB]); 
   
@@ -2056,6 +2278,8 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
     late:[...lateSet], 
     dress:[...dressSet] 
   }); 
+
+  await initRoundRatings(completedRound, completedMatchPlayers);
   
   rebuildFromMatches(state.matches); 
   state.registrations=[]; state.reserves=[]; state.registrationOpen=true; 
@@ -2134,6 +2358,155 @@ function renderStats(){
   const mostWins=[...sorted].sort((a,b)=>b.wins-a.wins||b.points-a.points)[0]; 
   document.getElementById("mostWinsName").textContent=mostWins?.name||"-"; 
   document.getElementById("archiveCount").textContent=state.seasonArchive.length; 
+}
+
+function renderEvaluation(){
+  const statusEl = document.getElementById("evaluationStatus");
+  const topEl = document.getElementById("evaluationTop");
+  const gridEl = document.getElementById("evaluationGrid");
+  const submitBtn = document.getElementById("submitEvaluationBtn");
+  const applyBtn = document.getElementById("applyEvaluationImpactBtn");
+
+  if(!statusEl || !topEl || !gridEl || !submitBtn || !applyBtn) return;
+
+  const latestMatch = getLatestRatedMatch();
+  if(!latestMatch){
+    currentEvaluationContext = { roundKey: "", players: [] };
+    statusEl.textContent = "لا توجد مباراة مكتملة للتقييم حالياً.";
+    topEl.textContent = "";
+    gridEl.innerHTML = `<div class="small">بعد اعتماد نتيجة أول مباراة، يظهر نموذج التقييم هنا.</div>`;
+    submitBtn.disabled = true;
+    applyBtn.classList.add("hidden");
+    return;
+  }
+
+  const roundKey = getRatingRoundKey(latestMatch.round);
+  const roundEntry = getRoundRatingEntry(roundKey);
+  const players = (Array.isArray(roundEntry.players) && roundEntry.players.length ? roundEntry.players : [...latestMatch.teamA, ...latestMatch.teamB])
+    .map(normalizeName)
+    .filter(Boolean);
+
+  currentEvaluationContext = { roundKey, players };
+
+  const voteClosed = hasSubmittedEvaluation(roundKey);
+  statusEl.textContent = voteClosed
+    ? `تم إرسال تقييمك للجولة ${latestMatch.round}. التقييم مجهول وتم اعتماده.`
+    : `قيّم لاعبي الجولة ${latestMatch.round} بشكل مجهول من 1 إلى 10.`;
+
+  const ranking = players
+    .map(name => ({ name, ...getPlayerRoundRating(roundKey, name) }))
+    .filter(item => item.count > 0)
+    .sort((a,b) => b.avg - a.avg || b.count - a.count)
+    .slice(0, 3);
+
+  topEl.innerHTML = ranking.length
+    ? `🏅 أفضل لاعبي الجولة حالياً: ${ranking.map((item, i) => `${i+1}) ${escapeHTML(item.name)} (${item.avg.toFixed(1)}/10)`).join(" | ")}`
+    : "🏅 لا توجد تقييمات كافية بعد لهذه الجولة.";
+
+  gridEl.innerHTML = players.map((name, idx) => {
+    const stats = getPlayerRoundRating(roundKey, name);
+    const avgText = stats.count ? `${stats.avg.toFixed(1)} / 10` : "لا يوجد تقييم بعد";
+    const countText = stats.count ? `${stats.count} تصويت` : "بانتظار أول تصويت";
+
+    return `
+      <div class="card" style="margin-bottom:10px; padding:14px; background:rgba(255,255,255,0.02);">
+        <div class="row" style="justify-content:space-between; align-items:center; gap:12px;">
+          <div style="font-weight:800; color:#fff">${escapeHTML(name)}</div>
+          <div class="small">متوسط: <strong style="color:var(--gold)">${escapeHTML(avgText)}</strong> (${escapeHTML(countText)})</div>
+        </div>
+        <div class="row" style="margin-top:10px; align-items:center; gap:10px;">
+          <input id="eval-${idx}" type="range" min="1" max="10" value="7" ${voteClosed ? "disabled" : ""} style="flex:1; min-width:200px;">
+          <div class="chip small" style="min-width:40px; text-align:center;">7</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  players.forEach((_, idx) => {
+    const slider = document.getElementById(`eval-${idx}`);
+    if(!slider) return;
+    const valueBox = slider.nextElementSibling;
+    slider.addEventListener("input", () => {
+      if(valueBox) valueBox.textContent = slider.value;
+    });
+  });
+
+  submitBtn.disabled = voteClosed || !players.length || !currentPlayerName;
+  submitBtn.textContent = voteClosed ? "تم إرسال التقييم" : "إرسال التقييم";
+
+  applyBtn.classList.toggle("hidden", !adminMode);
+  applyBtn.disabled = !adminMode || !players.length || !!roundEntry.applied;
+  applyBtn.textContent = roundEntry.applied ? "تم اعتماد تأثير التقييم لهذه الجولة" : "اعتماد تأثير التقييم على تقييم اللاعبين";
+}
+
+async function submitEvaluation(){
+  const { roundKey, players } = currentEvaluationContext;
+  if(!roundKey || !players.length) return alert("لا توجد مباراة جاهزة للتقييم حالياً.");
+  if(!currentPlayerName) return alert("سجل دخولك كلاعب أولاً لإرسال التقييم.");
+  if(hasSubmittedEvaluation(roundKey)) return alert("تم إرسال تقييمك مسبقاً لهذه الجولة.");
+
+  try {
+    await Promise.all(players.map(async (name, idx) => {
+      const slider = document.getElementById(`eval-${idx}`);
+      const score = Math.min(10, Math.max(1, Number(slider?.value || 7)));
+      const encodedKey = encodeURIComponent(normalizeName(name));
+      await db.ref(`${RATINGS_PATH}/${roundKey}/votes/${encodedKey}`).transaction(current => {
+        const sum = Number(current?.sum) || 0;
+        const count = Number(current?.count) || 0;
+        return { sum: sum + score, count: count + 1 };
+      });
+    }));
+
+    markEvaluationSubmitted(roundKey);
+    alert("شكراً! تم إرسال تقييمك بشكل مجهول.");
+    renderEvaluation();
+  } catch (error) {
+    console.error(error);
+    alert("تعذر إرسال التقييم حالياً. حاول مرة أخرى.");
+  }
+}
+
+function getRatingDelta(avg){
+  if(avg >= 8.5) return 2;
+  if(avg >= 7) return 1;
+  if(avg <= 4.5) return -2;
+  if(avg <= 6) return -1;
+  return 0;
+}
+
+async function applyEvaluationImpact(){
+  if(!adminMode) return;
+  const { roundKey, players } = currentEvaluationContext;
+  if(!roundKey || !players.length) return alert("لا توجد بيانات تقييم متاحة للاعتماد.");
+
+  const entry = getRoundRatingEntry(roundKey);
+  if(entry.applied) return alert("تم اعتماد تأثير التقييم لهذه الجولة مسبقاً.");
+
+  const playerMap = new Map(state.players.map(player => [player.name, player]));
+  let impactedPlayers = 0;
+
+  players.forEach(name => {
+    const stats = getPlayerRoundRating(roundKey, name);
+    if(stats.count < 1) return;
+    const delta = getRatingDelta(stats.avg);
+    if(!delta) return;
+
+    const player = playerMap.get(name);
+    if(!player) return;
+
+    player.rating = Math.max(0, Math.min(100, Number(player.rating || 0) + delta));
+    impactedPlayers += 1;
+  });
+
+  try {
+    await db.ref(`${RATINGS_PATH}/${roundKey}/applied`).set(true);
+    await writeState();
+    alert(impactedPlayers ? "تم اعتماد تأثير التقييم وتحديث تقييم اللاعبين." : "تم اعتماد الجولة، لكن بدون تغييرات على تقييم اللاعبين.");
+    renderAll();
+  } catch (error) {
+    console.error(error);
+    alert("تعذر اعتماد تأثير التقييم حالياً.");
+  }
 }
 
 function renderArchive(){ 
@@ -2274,6 +2647,7 @@ async function regenerateCode(playerName) {
     try {
       await db.ref(CODES_PATH + "/" + playerName).set(newCode);
       adminCodes[playerName] = newCode;
+      publicCodes[playerName] = newCode;
       alert(`تم التحديث! الكود الجديد: ${newCode}`);
       renderPlayersAdminList();
     } catch(e) {
@@ -2303,6 +2677,7 @@ async function addPlayer(){
   state.players.push({name,rating,pos,image,points:0,played:0,wins:0,losses:0}); 
   await db.ref(CODES_PATH + "/" + name).set(code); 
   adminCodes[name] = code;
+  publicCodes[name] = code;
   await writeState(); 
   
   renderAll(); 
@@ -2339,6 +2714,7 @@ async function deletePlayer(index){
 
   await db.ref(CODES_PATH + "/" + player.name).remove(); 
   delete adminCodes[player.name];
+  delete publicCodes[player.name];
   await writeState(); 
   
   renderAll(); 
@@ -2467,6 +2843,7 @@ function renderAll(){
   renderTeams(); 
   renderMatches(); 
   renderStats(); 
+  renderEvaluation();
   renderArchive(); 
   renderAdminTab(); 
   if(activeTab === "admin" && adminMode) renderPlayersAdminList();
@@ -2522,6 +2899,9 @@ document.getElementById("playerReminderOkBtn").addEventListener("click", () => c
 document.getElementById("playerReminderModal").addEventListener("click", (event) => {
   if(event.target && event.target.id === "playerReminderModal") closePlayerReminder(true);
 });
+
+document.getElementById("submitEvaluationBtn").addEventListener("click", submitEvaluation);
+document.getElementById("applyEvaluationImpactBtn").addEventListener("click", applyEvaluationImpact);
 
 document.getElementById("appAlertOkBtn").addEventListener("click", closeAppAlert);
 document.getElementById("appAlertModal").addEventListener("click", (event) => {
@@ -2598,6 +2978,8 @@ window.addEventListener('appinstalled', () => {
 
 // بدء التشغيل
 ensureAnonymousPlayerSession();
+listenPublicCodes();
+listenRatings();
 listenPlayerQueue();
 listenState();
 </script>
