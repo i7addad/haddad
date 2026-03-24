@@ -1066,6 +1066,7 @@
       <div class="actions" id="evaluationActions" style="margin-top:14px">
         <button id="submitEvaluationBtn" class="btn-green">إرسال التقييم</button>
         <button id="applyEvaluationImpactBtn" class="btn-blue hidden">اعتماد تأثير التقييم على تقييم اللاعبين</button>
+        <button id="clearEvaluationRoundBtn" class="btn-danger hidden">مسح تقييم الجولة</button>
       </div>
     </div>
   </section>
@@ -1481,6 +1482,10 @@ function getEvaluationVoteStorageKey(roundKey){
 }
 
 function hasSubmittedEvaluation(roundKey){
+  const rawEntry = ratingsState && typeof ratingsState === "object" ? ratingsState[roundKey] : null;
+  const hasAnyRemoteVotes = !!(rawEntry && rawEntry.votes && typeof rawEntry.votes === "object" && Object.keys(rawEntry.votes).length);
+  if(!hasAnyRemoteVotes) return false;
+
   try { return localStorage.getItem(getEvaluationVoteStorageKey(roundKey)) === "1"; }
   catch { return false; }
 }
@@ -2404,8 +2409,9 @@ function renderEvaluation(){
   const gridEl = document.getElementById("evaluationGrid");
   const submitBtn = document.getElementById("submitEvaluationBtn");
   const applyBtn = document.getElementById("applyEvaluationImpactBtn");
+  const clearBtn = document.getElementById("clearEvaluationRoundBtn");
 
-  if(!statusEl || !topEl || !gridEl || !submitBtn || !applyBtn) return;
+  if(!statusEl || !topEl || !gridEl || !submitBtn || !applyBtn || !clearBtn) return;
 
   const target = getEvaluationTarget();
   if(!target){
@@ -2415,6 +2421,7 @@ function renderEvaluation(){
     gridEl.innerHTML = `<div class="small">يظهر نموذج التقييم بعد اكتمال بيانات اللاعبين.</div>`;
     submitBtn.disabled = true;
     applyBtn.classList.add("hidden");
+    clearBtn.classList.add("hidden");
     return;
   }
 
@@ -2475,6 +2482,9 @@ function renderEvaluation(){
   applyBtn.classList.toggle("hidden", !adminMode);
   applyBtn.disabled = !adminMode || !players.length || !!roundEntry.applied;
   applyBtn.textContent = roundEntry.applied ? "تم اعتماد تأثير التقييم لهذه الجولة" : "اعتماد تأثير التقييم على تقييم اللاعبين";
+
+  clearBtn.classList.toggle("hidden", !adminMode);
+  clearBtn.disabled = !adminMode || !roundKey;
 }
 
 async function submitEvaluation(){
@@ -2590,6 +2600,28 @@ async function applyEvaluationImpact(){
   } catch (error) {
     console.error(error);
     alert("تعذر اعتماد تأثير التقييم حالياً.");
+  }
+}
+
+async function clearEvaluationRound(){
+  if(!adminMode) return;
+
+  const { roundKey, roundLabel } = currentEvaluationContext;
+  if(!roundKey) return alert("لا توجد جولة تقييم متاحة للمسح.");
+
+  const confirmed = confirm(`هل أنت متأكد من مسح جميع تقييمات (${roundLabel || "هذه الجولة"})؟\nلن يمكن التراجع عن هذا الإجراء.`);
+  if(!confirmed) return;
+
+  try {
+    await db.ref(`${RATINGS_PATH}/${roundKey}`).remove();
+    try { localStorage.removeItem(getEvaluationVoteStorageKey(roundKey)); }
+    catch(e) { console.warn("تعذر مسح حالة التصويت المحلية", e); }
+
+    alert("تم مسح تقييم الجولة بنجاح.");
+    renderEvaluation();
+  } catch (error) {
+    console.error(error);
+    alert("تعذر مسح تقييم الجولة حالياً.");
   }
 }
 
@@ -3014,6 +3046,7 @@ document.getElementById("playerReminderModal").addEventListener("click", (event)
 
 document.getElementById("submitEvaluationBtn").addEventListener("click", submitEvaluation);
 document.getElementById("applyEvaluationImpactBtn").addEventListener("click", applyEvaluationImpact);
+document.getElementById("clearEvaluationRoundBtn").addEventListener("click", clearEvaluationRound);
 
 document.getElementById("appAlertOkBtn").addEventListener("click", closeAppAlert);
 document.getElementById("appAlertModal").addEventListener("click", (event) => {
