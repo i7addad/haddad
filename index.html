@@ -3089,11 +3089,20 @@ window.addEventListener('appinstalled', () => {
 });
 
 // بدء التشغيل
-ensureAnonymousPlayerSession();
-listenPublicCodes();
-listenRatings();
-listenPlayerQueue();
-listenState();
+async function bootApp(){
+  try {
+    await ensureAnonymousPlayerSession();
+  } catch (error) {
+    console.warn("تعذر تجهيز جلسة اللاعب قبل الربط:", error?.message || error);
+  }
+
+  listenPublicCodes();
+  listenRatings();
+  listenPlayerQueue();
+  listenState();
+}
+
+bootApp();
 </script>
 </body>
 </html>
