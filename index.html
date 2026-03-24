@@ -1444,7 +1444,7 @@ function getEvaluationTarget(){
 
   // Allow anonymous rating before the first match so admin can tune ratings ahead of draw.
   if(state.round === 1){
-    const prePlayers = (state.registrations.length ? state.registrations : state.players.map(p => p.name))
+    const prePlayers = state.players.map(p => p.name)
       .map(normalizeName)
       .filter(Boolean);
     return {
