@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>دوري الحداد الممتاز</title>
+  
+  <!-- إعدادات تطبيق الجوال PWA -->
+  <meta name="theme-color" content="#000000">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="دوري الحداد">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23000000'/><text x='50' y='50' font-size='50' text-anchor='middle' dominant-baseline='central' fill='%23d4af37'>🏆</text></svg>">
+  <link id="manifest-link" rel="manifest" href="">
+
+  <!-- استدعاء خط Cairo للغة العربية -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      color-scheme: dark; /* إجبار المتصفح على استخدام ألوان الوضع الداكن للقوائم */
+      /* ألوان بطولة الأبطال الفاخر (Premium Black & Gold) */
+      --bg-main: #000000; 
+      --bg-panel: #0a0a0a;
+      --border: #262626;
+      --border-focus: #d4af37;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --gold: #d4af37;
+      --gold-light: #fef08a;
+      --gold-dark: #854d0e;
+      --danger: #b91c1c;
+      --success: #166534;
+    }
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      margin: 0;
+      font-family: 'Cairo', Tahoma, Arial, sans-serif;
+      color: var(--text-main);
+      background: var(--bg-main);
+      background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #000 70%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    .wrap { max-width: 1450px; margin: auto; padding: 20px; }
+
+    /* البطاقات الفاخرة الداكنة */
+    .card {
+      background: linear-gradient(145deg, #111, #050505) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.02);
+      margin-bottom: 20px;
+      animation: fadeUp 0.4s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* الهيدر الفاخر */
+    .hero {
+      position: relative;
+      background: linear-gradient(135deg, #111, #000) !important;
+      border-bottom: 2px solid var(--gold) !important;
+      box-shadow: 0 10px 30px rgba(212, 175, 55, 0.05) !important;
+    }
+
+    h1, h2, h3 { margin: 0 0 12px; font-weight: 800; letter-spacing: -0.5px; }
+    h2 { color: #fff; }
+    h3 { color: var(--gold-light); }
+    .sub { color: var(--text-muted); font-size: 14px; font-weight: 600; }
+    
+    .title-xl { 
+      font-size: 38px; 
+      font-weight: 900; 
+      background: linear-gradient(to right, var(--gold-light), var(--gold)); 
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent; 
+    }
+
+    .tabs, .chips, .row, .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    
+    /* الأزرار العادية */
+    .chip, button {
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: inherit;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .chip:hover, button:hover:not(:disabled) {
+      background: #1a1a1a;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    }
+
+    .chip.active, .chip.active:hover { 
+      background: var(--gold); /* لون احتياطي */
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold)); 
+      color: #000 !important; /* إجبار بقاء النص باللون الأسود دائماً */
+      border-color: var(--gold-light); 
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); 
+    }
+
+    /* أزرار الإجراءات الفاخرة */
+    .btn-green { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; border: none; box-shadow: 0 4px 15px rgba(212,175,55,0.2); }
+    .btn-green:hover:not(:disabled) { background: var(--gold-light); color: #000; box-shadow: 0 4px 20px rgba(212,175,55,0.4); }
+    
+    .btn-blue { background: #0a0a0a; color: var(--gold); border: 1px solid var(--gold); }
+    .btn-blue:hover:not(:disabled) { background: var(--gold); color: #000; }
+    
+    .btn-danger { background: #1a0505; color: #ef4444; border: 1px solid #7f1d1d; }
+    .btn-danger:hover:not(:disabled) { background: #ef4444; color: #fff; }
+    
+    .btn-pink { background: #1a1a1a; color: #fff; border: 1px solid #444; }
+    .btn-pink:hover:not(:disabled) { background: #333; color: var(--gold); border-color: var(--gold); }
+    
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(1); }
+
+    input, textarea, select {
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      background: #050505;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 600;
+      transition: all 0.3s;
+      min-width: 160px;
+    }
+    
+    /* تنسيق الخيارات داخل القوائم المنسدلة */
+    select option {
+      background-color: #111;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      background: #0a0a0a;
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(212,175,55,0.2);
+    }
+
+    .small { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+    .hidden { display: none !important; }
+
+    /* إحصائيات بستايل ملكي */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .stat { 
+      border-radius: 16px; 
+      padding: 18px; 
+      background: #0a0a0a !important; 
+      border: 1px solid #222 !important;
+      position: relative;
+      overflow: hidden;
+      font-weight: 700; color: var(--text-muted);
+    }
+    .stat::after {
+      content: ''; position: absolute; bottom: 0; right: 0; left: 0; height: 2px;
+    }
+    .stat:nth-child(1)::after { background: var(--gold); }
+    .stat:nth-child(2)::after { background: var(--success); }
+    .stat:nth-child(3)::after { background: var(--danger); }
+    .stat:nth-child(4)::after { background: #555; }
+    .stat .v { font-size: 32px; font-weight: 900; margin-top: 5px; color: #fff; }
+
+    .grid-players { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .player { 
+      padding: 14px; 
+      border-radius: 16px; 
+      border: 1px solid #222; 
+      background: rgba(255,255,255,0.01); 
+      text-align: right;
+      transition: all 0.3s;
+    }
+    .player:hover { border-color: var(--gold); background: rgba(212,175,55,0.02); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+    .player .meta { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+    
+    .player-top { display: flex; gap: 12px; align-items: center; }
+    .avatar { 
+      width: 50px; height: 50px; 
+      border-radius: 12px; 
+      object-fit: cover; 
+      background: linear-gradient(135deg, #111, #222); color: var(--gold);
+      display: flex; align-items: center; justify-content: center; 
+      font-weight: 900; font-size: 18px;
+      flex: 0 0 50px; 
+      border: 1px solid #333; 
+    }
+
+    .badge-main { color: #000; font-weight: 900; background: var(--gold); padding: 4px 10px; border-radius: 8px; font-size: 13px; }
+    .badge-reserve { color: #fff; font-weight: 900; background: #333; border: 1px solid #555; padding: 4px 10px; border-radius: 8px; font-size: 13px; }
+
+    .formation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
+    .formation-card { padding: 20px; border-radius: 24px; border: 1px solid #222; background: #0a0a0a !important; }
+    .formation-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px; }
+
+    /* الملعب الفاخر (Dark Green & Gold) */
+    .pitch {
+      position: relative;
+      height: 680px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #064e3b 0%, #022c22 100%) !important;
+      box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
+      border: 2px solid #222;
+    }
+    
+    /* تخطيط الملعب الذهبي */
+    .pitch:before { content:""; position:absolute; inset: 16px; border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 8px; }
+    .pitch .half { position:absolute; top:50%; left:16px; right:16px; height:0; border-top: 2px solid rgba(212, 175, 55, 0.3); }
+    .pitch .center-circle { position:absolute; top:50%; left:50%; width: 130px; height: 130px; border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 50%; transform: translate(-50%,-50%); }
+    .pitch .center-dot { position:absolute; top:50%; left:50%; width: 8px; height: 8px; background: rgba(212, 175, 55, 0.6); border-radius: 50%; transform: translate(-50%,-50%); }
+    .pitch .box-top, .pitch .box-bottom { position:absolute; left:50%; width: 240px; height: 100px; border: 2px solid rgba(212, 175, 55, 0.3); transform: translateX(-50%); }
+    .pitch .box-top { top:16px; border-bottom: none; }
+    .pitch .box-bottom { bottom:16px; border-top: none; }
+
+    .lineup-player {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+      width: 120px;
+      z-index: 10;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .lineup-player:hover { transform: translate(-50%, -55%) scale(1.1); z-index: 20; }
+    
+    .lineup-token {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 3px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 22px; color: #fff;
+      background-size: cover; background-position: center;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+      background-color: #111;
+    }
+    .lineup-token img {
+      width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+    }
+    
+    /* ألوان الفرق في الملعب */
+    .token-black { background: linear-gradient(135deg, #111, #222); border-color: #555; }
+    .token-cocktail { background: linear-gradient(135deg, #1a1500, #332800); border-color: var(--gold); }
+    
+    .lineup-name {
+      background: rgba(0,0,0,0.9);
+      color: #e5e5e5;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      border: 1px solid #333;
+      white-space: nowrap;
+    }
+    .token-cocktail ~ .lineup-name { border-color: rgba(212, 175, 55, 0.5); color: var(--gold-light); }
+    
+    .lineup-pos { font-size: 11px; color: var(--text-muted); font-weight: 700; background: #000; padding: 2px 8px; border-radius: 6px; border: 1px solid #222; }
+
+    .share-box { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .preview-text {
+      white-space: pre-wrap;
+      background: #050505;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 18px;
+      line-height: 1.8;
+      font-family: monospace;
+      font-size: 14px;
+      color: var(--gold-light);
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 14px 12px; border-bottom: 1px solid #222; text-align: right; }
+    th { font-weight: 800; color: var(--text-muted); border-bottom: 2px solid #333; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .center { text-align: center; }
+
+    /* تعديلات الأقسام للتناسب مع الفخامة */
+    #matchAdminCard { border-color: #333 !important; }
+    #matchAdminCard .row > div { background: #050505 !important; border: 1px solid #222; }
+    
+    .admin-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    
+    .champion {
+      text-align: center;
+      background: linear-gradient(135deg, #1a1500, #0a0800);
+      color: var(--gold);
+      border: 1px solid var(--gold);
+      box-shadow: 0 20px 50px rgba(212, 175, 55, 0.1);
+      padding: 40px 20px;
+    }
+    
+    .sync { font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 999px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); display: flex; align-items: center; gap: 6px; color: #4ade80; }
+    .sync::before { content: ''; display: block; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+
+    #installAppBtn {
+      display: none;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: #000;
+      border: none;
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    }
+
+    .login-grid { display: flex; justify-content: center; margin-bottom: 20px; }
+    .login-grid .card { width: 100%; max-width: 600px; }
+    
+    .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .code-generator-wrapper { display: flex; gap: 8px; align-items: stretch; flex: 1; }
+
+    @media (max-width: 900px) {
+      .pitch { height: 600px; }
+      .formation-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .title-xl { font-size: 26px; }
+      .wrap { padding: 12px; }
+      .pitch { height: 520px; }
+      .lineup-player { width: 90px; }
+      .lineup-token { width: 60px; height: 60px; font-size: 18px; }
+      .lineup-name { font-size: 11px; padding: 4px 8px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <!-- رأس الصفحة -->
+  <div class="card hero">
+    <!-- زر دخول الإدارة الصغير في الزاوية اليسرى -->
+    <button id="openAdminModalBtn" style="position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.5); border: 1px solid var(--gold); border-radius: 12px; width: 44px; height: 44px; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.3s; z-index: 100;" title="دخول الإدارة" onmouseover="this.style.background='var(--gold)'; this.style.color='#000';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='inherit';">⚙️</button>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; padding-top: 10px;">
+      <div>
+        <div class="title-xl">🏆 دوري الحداد الممتاز 🏆</div>
+        <div class="sub" id="seasonInfo" style="margin-top: 5px;"></div>
+        <!-- تفاصيل المباراة القادمة ستظهر هنا للمستخدمين -->
+        <div id="matchDetailsDisplay" class="small hidden" style="margin-top: 10px; color: var(--gold-light); font-weight: 700; background: rgba(212,175,55,0.1); padding: 6px 16px; border-radius: 12px; border: 1px solid rgba(212,175,55,0.3); display: inline-block;"></div>
+      </div>
+      <div class="row" style="justify-content: center; width: 100%;">
+        <button id="installAppBtn" class="chip" style="font-weight: 900;">📲 تثبيت التطبيق</button>
+        <div class="tabs" style="justify-content: center;">
+          <button class="chip active" data-tab="league">الملعب والتشكيلة</button>
+          <button class="chip" data-tab="matches">المباريات</button>
+          <button class="chip" data-tab="stats">الإحصائيات</button>
+          <button class="chip" data-tab="archive">الأرشيف</button>
+          <button class="chip hidden" id="adminTabBtn" data-tab="admin" style="border-color: var(--gold); color: var(--gold);">⚙️ الإدارة</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- تسجيل الدخول -->
+  <div class="login-grid">
+    <div class="card" id="playerLoginCard" style="border-top: 2px solid var(--gold) !important;">
+      <h3 style="color: var(--gold)">🎫 تسجيل اللاعب</h3>
+      <div class="small" id="playerLoginDesc" style="margin-bottom:14px">اختر اسمك وأدخل الكود السري الخاص بك لتتمكن من تسجيل حضورك وتأكيد الدفع من حسابك فقط.</div>
+      <div class="actions" id="playerLoginActions">
+        <select id="playerNameSelect" style="flex:1"><option value="">اختر اسمك</option></select>
+        <input type="password" id="playerCodeInput" placeholder="الكود السري" style="flex:1; max-width: 140px;" />
+        <button class="btn-green" id="playerLoginBtn">دخول</button>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="small" id="playerLoginStatus" style="color: var(--gold-light)">غير مسجل دخول</div>
+          <button class="btn-danger small hidden" id="playerLogoutBtn" style="padding: 4px 10px; border-radius: 8px;">خروج</button>
+        </div>
+        <div class="sync" id="syncStatus">جاري الربط...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- قسم الدوري الرئيسي (الملعب) -->
+  <section id="tab-league">
+    <div class="stats">
+      <div class="stat">
+        <div>المباريات المسجلة</div><div class="v" id="statMatches">0</div>
+      </div>
+      <div class="stat">
+        <div>المسجلين أساسي</div><div class="v" id="statSelected" style="color: var(--gold)">0/10</div>
+      </div>
+      <div class="stat">
+        <div>الاحتياط</div><div class="v" id="statReserve" style="color: var(--danger)">0</div>
+      </div>
+      <!-- ضفنا ID عشان نخفيها للمستخدمين العاديين -->
+      <div class="stat hidden" id="adminStatContainer">
+        <div>حالة الأدمن</div><div class="v" id="statAdmin" style="font-size: 24px; padding-top: 8px; color: #fff;">مقفل</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center; margin-bottom: 16px;">
+        <div>
+          <h3 style="color: var(--gold)">🎮 قائمة تسجيل الحضور</h3>
+          <div class="small">أول 10 لاعبين أساسي، والبقية احتياط بالترتيب.</div>
+        </div>
+        <!-- تم إضافة id وإخفاء الأزرار مبدئياً عن المستخدمين العاديين -->
+        <div class="actions hidden" id="registrationAdminActions">
+          <button class="btn-green" id="drawBtn" style="font-size: 16px; padding: 12px 24px;">⚡ إجراء القرعة المزدوجة</button>
+          <button id="toggleRegistrationBtn" class="btn-blue">قفل / فتح التسجيل</button>
+        </div>
+      </div>
+      <div class="small" id="registrationStatus" style="margin-bottom:16px; font-weight: 800; color: #fff"></div>
+      <div class="grid-players" id="playersGrid"></div>
+    </div>
+
+    <div class="formation-grid">
+      <div class="formation-card">
+        <div class="formation-head">
+          <h2 style="color: #fff;">⚫ الفريق الأسود</h2>
+          <button class="btn-pink small" id="shareBlackBtn">مشاركة الأسود</button>
+        </div>
+        <div class="pitch" id="pitchBlack">
+          <div class="half"></div><div class="center-circle"></div><div class="center-dot"></div>
+          <div class="box-top"></div><div class="box-bottom"></div>
+        </div>
+      </div>
+      
+      <div class="formation-card">
+        <div class="formation-head">
+          <h2 style="color: var(--gold);">👑 فريق الكوكتيل</h2>
+          <button class="btn-blue small" id="shareCocktailBtn">مشاركة الكوكتيل</button>
+        </div>
+        <div class="pitch" id="pitchCocktail">
+          <div class="half"></div><div class="center-circle"></div><div class="center-dot"></div>
+          <div class="box-top"></div><div class="box-bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- إدارة المباراة بعد القرعة -->
+    <div class="card hidden" id="matchAdminCard" style="margin-top: 20px;">
+      <h3 style="color: var(--gold);">📝 تسجيل نتيجة ومخالفات المباراة</h3>
+      <div class="row" style="gap: 24px; margin-bottom: 20px;">
+        <div style="flex: 1; padding: 16px; border-radius: 16px;">
+          <h3 style="border-bottom: 1px solid #333; padding-bottom: 8px; color: #fff">⚫ الأسود</h3>
+          <div id="penaltiesA"></div>
+        </div>
+        <div style="flex: 1; padding: 16px; border-radius: 16px;">
+          <h3 style="border-bottom: 1px solid #333; padding-bottom: 8px; color: var(--gold)">👑 الكوكتيل</h3>
+          <div id="penaltiesB"></div>
+        </div>
+      </div>
+      
+      <div class="row" style="align-items: center; background: #050505; padding: 16px; border-radius: 16px; border: 1px solid #222;">
+        <div style="font-weight: 800; font-size: 18px; color: var(--text-muted)">النتيجة:</div>
+        <input id="scoreA" placeholder="الأسود" inputmode="numeric" style="width: 100px; text-align: center; font-size: 20px; font-weight: 900; color: #fff;" />
+        <span style="font-size: 24px; font-weight: 900; color: #555">-</span>
+        <input id="scoreB" placeholder="الكوكتيل" inputmode="numeric" style="width: 100px; text-align: center; font-size: 20px; font-weight: 900; color: var(--gold);" />
+        <button class="btn-green" id="saveMatchBtn" style="flex:1; font-size: 16px;">حفظ واعتماد المباراة 💾</button>
+      </div>
+      <div class="small" style="margin-top:12px; text-align: center;">ملاحظة: التأخير يخصم نقطة (-1) | مخالفة اللبس تخصم نقطة (-1) | كلاهما معاً (-2)</div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <h3 style="color: #fff">📤 تصدير ومشاركة</h3>
+      <div class="share-box">
+        <div class="preview-text" id="sharePreview">بعد إجراء القرعة، سيظهر النص الجاهز للمشاركة هنا.</div>
+        <div class="actions">
+          <button class="btn-green" id="shareToGroupBtn" style="box-shadow: 0 0 15px rgba(34,197,94,0.4); border: 1px solid #4ade80;">📲 إرسال للقروب مباشرة</button>
+          <button class="btn-blue" id="shareAllBtn">مشاركة عامة</button>
+          <button class="chip" id="copyShareBtn">نسخ النص</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- سجل المباريات -->
+  <section id="tab-matches" class="hidden">
+    <div class="card">
+      <h2 style="color: var(--gold)">📅 سجل مباريات الموسم الحالي</h2>
+      <div style="overflow:auto; border-radius: 12px; border: 1px solid #222;">
+        <table>
+          <thead><tr><th>الجولة</th><th>الفريق الأسود</th><th>الفريق الكوكتيل</th><th class="center">النتيجة</th><th>المخالفات</th><th>إجراء</th></tr></thead>
+          <tbody id="matchesTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- الإحصائيات -->
+  <section id="tab-stats" class="hidden">
+    <div class="stats">
+      <div class="stat">
+        <div>👑 المتصدر الحالي</div><div class="v" id="leaderName" style="color: var(--gold);">-</div>
+      </div>
+      <div class="stat">
+        <div>🔥 الأكثر فوزاً</div><div class="v" id="mostWinsName" style="color: #fff;">-</div>
+      </div>
+      <div class="stat">
+        <div>📚 مواسم الأرشيف</div><div class="v" id="archiveCount" style="color: #fff;">0</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2 style="color: var(--gold)">📊 جدول الترتيب العام</h2>
+      <div style="overflow:auto; border-radius: 12px; border: 1px solid #222;">
+        <table>
+          <thead><tr><th>المركز</th><th>اللاعب</th><th class="center">مباريات</th><th class="center" style="color:var(--success)">فوز</th><th class="center" style="color:var(--danger)">خسارة</th><th class="center" style="color:var(--gold)">النقاط</th></tr></thead>
+          <tbody id="statsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- الأرشيف -->
+  <section id="tab-archive" class="hidden">
+    <div class="card">
+      <h2 style="color: var(--gold)">🗂️ أرشيف المواسم السابقة</h2>
+      <div id="archiveList"></div>
+    </div>
+  </section>
+
+  <!-- قسم الأدمن -->
+  <section id="tab-admin" class="hidden">
+    <div class="card" style="border-top: 2px solid var(--gold) !important">
+      <h2 style="color: var(--gold)">⚙️ تحكم الإدارة الشامل</h2>
+      <div class="actions" style="margin-top: 16px;">
+        <button class="btn-danger" id="logoutBtn">تسجيل خروج الأدمن</button>
+        <button class="btn-green" id="newSeasonBtn" style="font-size: 16px; font-weight: 800;">✨ إنهاء الموسم الحالي والبدء بموسم جديد</button>
+      </div>
+    </div>
+
+    <!-- كرت إعدادات المباراة القادمة (جديد) -->
+    <div class="card" style="border-top: 2px solid var(--success) !important">
+      <h2 style="color: #fff">📅 إعدادات المباراة القادمة</h2>
+      <div class="small" style="margin-bottom:16px">أضف تفاصيل الوقت والمكان ورابط مجموعة الواتساب ليتم مشاركتها تلقائياً مع التشكيلة.</div>
+      <div class="actions" style="margin-bottom:12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <input id="infoDate" placeholder="التاريخ (مثال: الجمعة)" value="الجمعة" />
+        <input id="infoTime" placeholder="الوقت (مثال: 11:00 مساءً)" value="11:00 مساءً" />
+        <input id="infoLocation" placeholder="المكان (مثال: ملعب الشعب)" />
+        <input id="infoGroupLink" placeholder="رابط قروب الواتساب (https://chat.whatsapp.com/...)" />
+      </div>
+      <button class="btn-green" id="saveInfoBtn" style="width: 100%; font-size: 16px; margin-top: 8px;">حفظ تفاصيل المباراة</button>
+    </div>
+    
+    <div class="card">
+      <h2 style="color: #fff">➕ إضافة لاعب جديد</h2>
+      <div class="small" style="margin-bottom:16px">أضف بيانات اللاعب مع توليد كود سري له.</div>
+      <div class="actions" style="margin-bottom:12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <input id="newPlayerName" placeholder="الاسم الكامل" />
+        <input type="number" id="newPlayerRating" placeholder="التقييم (أرقام فقط، مثال: 85)" min="0" max="100" />
+        <select id="newPlayerPos">
+          <option value="">اختر المركز الأساسي</option>
+          <option value="🧤">حارس 🧤</option>
+          <option value="🛡️">مدافع 🛡️</option>
+          <option value="⚽">وسط ⚽</option>
+          <option value="🔥">مهاجم 🔥</option>
+        </select>
+        <input id="newPlayerImage" placeholder="رابط صورة اللاعب (اختياري)" />
+        
+        <div class="code-generator-wrapper">
+          <input id="newPlayerCode" placeholder="الكود السري" style="flex:1" />
+          <button class="btn-blue" onclick="document.getElementById('newPlayerCode').value = Math.floor(1000 + Math.random() * 9000).toString()" title="توليد كود عشوائي">🎲 توليد</button>
+        </div>
+      </div>
+      <button class="btn-green" id="addPlayerBtn" style="width: 100%; font-size: 16px; margin-top: 8px;">إضافة اللاعب للقاعدة</button>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom: 16px;">
+        <div>
+          <h2 style="color: var(--gold)">👥 إدارة وتعديل اللاعبين</h2>
+          <div class="small">التحكم في الأكواد، الصور، والحذف.</div>
+        </div>
+      </div>
+      <div id="playersAdminList"></div>
+    </div>
+  </section>
+
+  <!-- كارت البطل -->
+  <div class="card champion hidden" id="championCard">
+    <div style="font-size:70px; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));">🏆</div>
+    <div style="font-size:42px; font-weight:900; margin-top: 10px; color: var(--gold);" id="championName">البطل</div>
+    <div style="font-size:30px; margin-top:15px; font-weight: 800; color: #fff;">بطل دوري الحداد الممتاز! 🎉</div>
+    <div style="margin-top:20px; font-weight:800; font-size: 18px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 12px; display: inline-block; color: var(--gold-light);">انتهى الموسم رسمياً بعد 15 جولة حاسمة</div>
+  </div>
+
+  <!-- توقيع المصمم -->
+  <div style="text-align: center; margin-top: 40px; color: var(--gold); font-weight: 800; letter-spacing: 1px; text-shadow: 0 0 10px rgba(212,175,55,0.4);">
+    <div style="font-size: 14px; opacity: 0.9;">حقوق الطبع محفوظة &copy;</div>
+    <div style="font-size: 20px; font-weight: 900; margin: 6px 0;">🏆 دوري الحداد الممتاز 🏆</div>
+    <div style="font-size: 12px; color: var(--gold-light); opacity: 0.8;">حسن مصطفى الحداد - 2026</div>
+  </div>
+</div>
+
+<!-- نافذة دخول الإدارة (Modal) -->
+<div id="adminModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+  <div class="card" style="width:90%; max-width:400px; border-top: 2px solid var(--gold) !important; margin: 0;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="color: #fff; margin:0;">🔐 دخول الإدارة</h3>
+      <button id="closeAdminModalBtn" style="background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">✖</button>
+    </div>
+    <div class="actions" id="adminLoginActions" style="flex-direction:column; gap:12px; margin-top:20px;">
+      <input type="email" id="adminEmailInput" placeholder="البريد الإلكتروني" style="width:100%" />
+      <input type="password" id="adminPasswordInput" placeholder="كلمة المرور" style="width:100%" />
+      <button class="btn-green" id="adminLoginBtn" style="width:100%">دخول</button>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top:12px;">
+      <div class="small" id="adminLoginStatus" style="color: #fff; text-align:center;">الأدمن غير مسجل دخول</div>
+      <button class="btn-danger hidden" id="adminLogoutModalBtn" style="width:100%">تسجيل خروج الأدمن</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// إعدادات قاعدة البيانات
+const firebaseConfig = {
+  apiKey: "AIzaSyDUmD4t6V5WqEXfbLyua47VxSl-YgGSpCA",
+  authDomain: "haddadleague.firebaseapp.com",
+  databaseURL: "https://haddadleague-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "haddadleague",
+  storageBucket: "haddadleague.firebasestorage.app",
+  messagingSenderId: "999086861954",
+  appId: "1:999086861954:web:deebed92b265f511118e9b",
+  measurementId: "G-MCQB4DE59X"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// مسارات قاعدة البيانات
+const LEAGUE_PATH = "league/state";
+const CODES_PATH = "playerCodes";
+const PLAYER_QUEUE_PATH = "league/playerQueue";
+const PLAYER_SESSION_PATH = "playerSessions";
+
+// هيكل البيانات الافتراضي مع معلومات المباراة (الجديد)
+const defaultState = { 
+  players: [], 
+  teams:{A:[],B:[]}, 
+  matches:[], 
+  round:1, 
+  seasonNumber:1, 
+  seasonArchive:[], 
+  registrations:[], 
+  reserves:[], 
+  paidPlayers:[], 
+  matchInfo: { date: "الجمعة", time: "11:00 مساءً", location: "", groupLink: "" },
+  registrationOpen:true 
+};
+
+const ALLOWED_POSITIONS = ["🧤", "🛡️", "⚽", "🔥"];
+
+function escapeHTML(value){
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeJSString(value){
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, "")
+    .replace(/\n/g, " ");
+}
+
+function normalizeName(value){
+  return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+}
+
+function normalizeCode(value){
+  return String(value ?? "").replace(/\D/g, "").slice(0, 8);
+}
+
+function sanitizeUrl(value){
+  const url = String(value ?? "").trim();
+  if(!url) return "";
+  try {
+    const parsed = new URL(url);
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeMatchInfo(data){
+  const source = data && typeof data === "object" ? data : {};
+  return {
+    date: normalizeName(source.date || "الجمعة"),
+    time: normalizeName(source.time || "11:00 مساءً"),
+    location: normalizeName(source.location || ""),
+    groupLink: sanitizeUrl(source.groupLink || "")
+  };
+}
+
+function normalizePlayer(player){
+  if(!player || typeof player !== "object") return null;
+  const name = normalizeName(player.name);
+  if(!name) return null;
+  const rating = Number(player.rating);
+  const pos = ALLOWED_POSITIONS.includes(player.pos) ? player.pos : "⚽";
+  return {
+    name,
+    rating: Number.isFinite(rating) ? rating : 0,
+    pos,
+    image: sanitizeUrl(player.image),
+    points: Number.isFinite(Number(player.points)) ? Number(player.points) : 0,
+    played: Number.isFinite(Number(player.played)) ? Number(player.played) : 0,
+    wins: Number.isFinite(Number(player.wins)) ? Number(player.wins) : 0,
+    losses: Number.isFinite(Number(player.losses)) ? Number(player.losses) : 0
+  };
+}
+
+function normalizeNameList(list){
+  if(!Array.isArray(list)) return [];
+  return list.map(normalizeName).filter(Boolean);
+}
+
+function normalizeState(data){
+  const s = Object.assign({}, defaultState, data || {});
+  s.players = Array.isArray(s.players) ? s.players.map(normalizePlayer).filter(Boolean) : [];
+  s.teams = s.teams && typeof s.teams === "object" ? s.teams : {A:[],B:[]};
+  s.teams.A = Array.isArray(s.teams.A) ? s.teams.A.map(normalizePlayer).filter(Boolean) : [];
+  s.teams.B = Array.isArray(s.teams.B) ? s.teams.B.map(normalizePlayer).filter(Boolean) : [];
+  s.matches = Array.isArray(s.matches) ? s.matches.map(match => ({
+    round: Number.isFinite(Number(match?.round)) ? Number(match.round) : 1,
+    score: normalizeName(match?.score || "0 - 0"),
+    teamA: normalizeNameList(match?.teamA),
+    teamB: normalizeNameList(match?.teamB),
+    late: normalizeNameList(match?.late),
+    dress: normalizeNameList(match?.dress)
+  })) : [];
+  s.seasonArchive = Array.isArray(s.seasonArchive) ? s.seasonArchive : [];
+  s.registrations = normalizeNameList(s.registrations);
+  s.reserves = normalizeNameList(s.reserves);
+  s.paidPlayers = normalizeNameList(s.paidPlayers); 
+  s.matchInfo = normalizeMatchInfo(s.matchInfo);
+  s.round = Number.isFinite(Number(s.round)) ? Number(s.round) : 1;
+  s.seasonNumber = Number.isFinite(Number(s.seasonNumber)) ? Number(s.seasonNumber) : 1;
+  s.registrationOpen = typeof s.registrationOpen === "boolean" ? s.registrationOpen : true;
+  return s;
+}
+
+// المتغيرات العامة
+let state = normalizeState();
+let adminMode = false;
+let activeTab = "league";
+let suppressRemote = false;
+let currentPlayerName = null;
+let currentUserUid = null;
+let lateA=[], lateB=[], dressA=[], dressB=[];
+let adminCodes = {}; 
+let codesListener = null;
+let playerQueue = {};
+let sessionListener = null;
+
+// دوال المساعدة للصور والأسماء
+function initials(name){ return (name||"").split(" ").slice(0,2).map(x=>x[0]||"").join(""); }
+function avatarHTML(player, cls="avatar"){ 
+  return player && player.image ? 
+    `<img class="${escapeHTML(cls)}" src="${escapeHTML(player.image)}" alt="${escapeHTML(player.name)}" onerror="this.outerHTML='<div class=\\'${escapeJSString(cls)}\\'>${escapeJSString(initials(player.name))}</div>'">` : 
+    `<div class="${escapeHTML(cls)}">${escapeHTML(initials(player?.name||""))}</div>`; 
+}
+
+// الفرز والتنظيم
+function sortedPlayers(){ 
+  return [...state.players].sort((a,b) => (b.points-a.points) || (b.wins-a.wins) || (a.losses-b.losses) || (b.played-a.played)); 
+}
+function currentChampion(){ return sortedPlayers()[0]; }
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+function generateRandomCode() { return Math.floor(1000 + Math.random() * 9000).toString(); }
+
+// المزامنة مع Firebase
+function updateSyncStatus(text){ document.getElementById("syncStatus").textContent = text; }
+
+async function writeState(){ 
+  if(suppressRemote) return; 
+  updateSyncStatus("جارٍ الحفظ..."); 
+  try { 
+    syncDerivedRegistrationState();
+    await db.ref(LEAGUE_PATH).set(state); 
+    updateSyncStatus("متصل ومتزامن"); 
+  } catch(e) { 
+    updateSyncStatus("فشل المزامنة"); 
+    console.error(e); 
+  } 
+}
+
+function listenState(){ 
+  db.ref(LEAGUE_PATH).on("value", async (snapshot) => { 
+    const data = snapshot.val(); 
+    if(data){ 
+      suppressRemote = true; 
+      state = normalizeState(data); 
+      syncDerivedRegistrationState();
+      renderAll(); 
+      suppressRemote = false; 
+      updateSyncStatus("متصل ومتزامن"); 
+    } else { 
+      state = normalizeState(); 
+      syncDerivedRegistrationState();
+      renderAll();
+      updateSyncStatus("لا توجد بيانات منشورة بعد"); 
+    } 
+  }, err => { 
+    console.error(err); updateSyncStatus("تعذر الاتصال"); 
+  }); 
+}
+
+function syncDerivedRegistrationState(){
+  const validPlayers = new Set(state.players.map(player => player.name));
+  const queueEntries = Object.entries(playerQueue || {})
+    .map(([name, entry]) => ({
+      name: normalizeName(name),
+      joinedAt: Number(entry?.joinedAt) || 0,
+      paid: !!entry?.paid
+    }))
+    .filter(entry => entry.name && validPlayers.has(entry.name))
+    .sort((first, second) => {
+      if (first.joinedAt !== second.joinedAt) return first.joinedAt - second.joinedAt;
+      return first.name.localeCompare(second.name, "ar");
+    });
+
+  state.registrations = queueEntries.slice(0, 10).map(entry => entry.name);
+  state.reserves = queueEntries.slice(10).map(entry => entry.name);
+  state.paidPlayers = queueEntries.filter(entry => entry.paid).map(entry => entry.name);
+}
+
+function listenPlayerQueue(){
+  db.ref(PLAYER_QUEUE_PATH).on("value", snapshot => {
+    playerQueue = snapshot.val() || {};
+    syncDerivedRegistrationState();
+    renderAll();
+  }, err => {
+    console.error(err);
+  });
+}
+
+function attachPlayerSessionListener(uid){
+  if (sessionListener && currentUserUid) {
+    db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).off("value", sessionListener);
+    sessionListener = null;
+  }
+
+  currentUserUid = uid || null;
+  currentPlayerName = null;
+
+  if (!uid) {
+    renderAll();
+    return;
+  }
+
+  sessionListener = snapshot => {
+    const session = snapshot.val();
+    currentPlayerName = normalizeName(session?.playerName || "") || null;
+    renderAll();
+  };
+
+  db.ref(`${PLAYER_SESSION_PATH}/${uid}`).on("value", sessionListener);
+}
+
+function ensureAnonymousPlayerSession(){
+  const user = auth.currentUser;
+  if (user || adminMode) return Promise.resolve();
+  return auth.signInAnonymously().catch(error => {
+    console.error(error);
+    updateSyncStatus("تعذر إنشاء جلسة اللاعب");
+  });
+}
+
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    attachPlayerSessionListener(user.uid);
+    return;
+  }
+
+  attachPlayerSessionListener(null);
+
+  if (!adminMode) {
+    await ensureAnonymousPlayerSession();
+  }
+});
+
+// التنقل بين التبويبات
+function setTab(tab){ 
+  activeTab = tab; 
+  document.querySelectorAll("[data-tab]").forEach(btn => btn.classList.toggle("active", btn.dataset.tab===tab)); 
+  ["league","matches","stats","archive","admin"].forEach(t => document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab)); 
+  if(tab === "admin" && adminMode) renderPlayersAdminList(); 
+}
+document.querySelectorAll("[data-tab]").forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
+
+// توزيع التشكيلة في الملعب
+function formationSlots(team){ 
+  const gk = team.filter(p=>p.pos==="🧤");
+  const def = team.filter(p=>p.pos==="🛡️");
+  const mid = team.filter(p=>p.pos==="⚽");
+  const att = team.filter(p=>p.pos==="🔥"); 
+  const slots=[]; 
+  const use=(arr,coords,label)=>arr.forEach((p,i)=>coords[i]&&slots.push({...coords[i],player:p,label})); 
+  
+  use(gk,[{x:50,y:87}],"حارس"); 
+  use(def,[{x:25,y:68},{x:75,y:68},{x:50,y:72}],"دفاع"); 
+  use(mid,[{x:20,y:48},{x:50,y:45},{x:80,y:48},{x:35,y:55},{x:65,y:55}],"وسط"); 
+  use(att,[{x:50,y:18},{x:30,y:24},{x:70,y:24}],"هجوم"); 
+  
+  team.filter(p=>!slots.find(s=>s.player.name===p.name)).forEach((p,i)=>slots.push({x:15+(i*18),y:60,player:p,label:"لاعب"})); 
+  return slots.slice(0,5); 
+}
+
+function lineupToken(player, teamClass){ 
+  if(player && player.image) {
+    return `<div class="lineup-token ${escapeHTML(teamClass)}">
+              <img src="${escapeHTML(player.image)}" alt="${escapeHTML(player.name)}" onerror="this.outerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%\\'>${escapeJSString(initials(player.name))}</div>'">
+            </div>`;
+  } else {
+    return `<div class="lineup-token ${escapeHTML(teamClass)}">${escapeHTML(initials(player?.name||""))}</div>`;
+  }
+}
+
+function renderPitch(pitchId, team, teamClass){ 
+  const pitch = document.getElementById(pitchId); 
+  pitch.querySelectorAll(".lineup-player").forEach(el=>el.remove()); 
+  if(!team.length) return; 
+  
+  formationSlots(team).forEach(slot=>{ 
+    const div=document.createElement("div"); 
+    div.className="lineup-player"; 
+    div.style.left=slot.x+"%"; 
+    div.style.top=slot.y+"%"; 
+    div.innerHTML=`${lineupToken(slot.player, teamClass)}
+                   <div class="lineup-name">${escapeHTML(slot.player.name)}</div>
+                   <div class="lineup-pos">${escapeHTML(slot.label)}</div>`; 
+    pitch.appendChild(div); 
+  }); 
+}
+
+// استخراج نص رأس الرسالة (يتضمن الجولة والتفاصيل بالترتيب)
+function getMatchHeader() {
+  let txt = `🏆 دوري الحداد الممتاز 🏆\n📅 الموسم ${state.seasonNumber} - الجولة ${state.round}\n`;
+  if (state.matchInfo && (state.matchInfo.date || state.matchInfo.time || state.matchInfo.location)) {
+    txt += `\n📍 تفاصيل المباراة:\n`;
+    if (state.matchInfo.date) txt += `🗓 التاريخ: ${state.matchInfo.date}\n`;
+    if (state.matchInfo.time) txt += `⏰ الوقت: ${state.matchInfo.time}\n`;
+    if (state.matchInfo.location) txt += `🏟 المكان: ${state.matchInfo.location}\n`;
+  }
+  return txt;
+}
+
+function renderSharePreview(){ 
+  const black = state.teams.A.map(p=>`${p.pos} ${p.name}`).join("\n") || "لم يتم التحديد"; 
+  const cocktail = state.teams.B.map(p=>`${p.pos} ${p.name}`).join("\n") || "لم يتم التحديد"; 
+  
+  const footerText = "\n\n💳 لا تنسى القطية ومض على الرقم 95000659 وبس تدفع أكد دفعك بالموقع.";
+  const txt = `${getMatchHeader()}\n⚫ تشكيل الفريق الأسود:\n${black}\n\n👑 تشكيل فريق الكوكتيل:\n${cocktail}${footerText}`; 
+  document.getElementById("sharePreview").textContent = txt; 
+  return txt; 
+}
+
+async function shareText(text){ 
+  if(navigator.share){ 
+    try{ await navigator.share({ title:"دوري الحداد الممتاز", text }); }catch(e){} 
+  } else { 
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank"); 
+  } 
+}
+
+async function playerLogin(){
+  const name = normalizeName(document.getElementById("playerNameSelect").value);
+  const code = normalizeCode(document.getElementById("playerCodeInput").value);
+
+  if(!name || !code) return alert("اختر اسمك وأدخل الكود السري.");
+  if(!currentUserUid) return alert("جاري تجهيز جلسة اللاعب، حاول مرة ثانية بعد لحظات.");
+
+  try {
+    await db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).set({
+      playerName: name,
+      code,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+    document.getElementById("playerCodeInput").value = "";
+    alert("تم تسجيل دخول اللاعب بنجاح.");
+  } catch (error) {
+    console.error(error);
+    alert("فشل التحقق من اللاعب. تأكد من الاسم والكود السري.");
+  }
+}
+document.getElementById("playerLoginBtn").addEventListener("click", playerLogin);
+
+async function performPlayerLogout(){
+  if(!currentUserUid) return;
+  try {
+    await db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).remove();
+    await auth.signOut();
+    await ensureAnonymousPlayerSession();
+    alert("تم تسجيل خروج اللاعب.");
+  } catch (error) {
+    console.error(error);
+    alert("تعذر تسجيل خروج اللاعب حالياً.");
+  }
+}
+document.getElementById("playerLogoutBtn").addEventListener("click", performPlayerLogout);
+
+async function upsertPlayerQueueEntry(name, paidValue){
+  const currentEntry = playerQueue[name] || {};
+  const payload = {
+    joinedAt: Number(currentEntry.joinedAt) || firebase.database.ServerValue.TIMESTAMP,
+    paid: typeof paidValue === "boolean" ? paidValue : !!currentEntry.paid
+  };
+  await db.ref(`${PLAYER_QUEUE_PATH}/${name}`).set(payload);
+}
+
+// نظام الأدمن والأكواد
+async function adminLogin(){ 
+  const email=document.getElementById("adminEmailInput").value.trim();
+  const pass=document.getElementById("adminPasswordInput").value; 
+  if(!email||!pass) return alert("الرجاء إدخال بيانات الأدمن كاملة"); 
+  
+  try{ 
+    await auth.signInWithEmailAndPassword(email, pass); 
+    adminMode=true; 
+    document.getElementById("adminPasswordInput").value = "";
+    document.getElementById("adminModal").classList.add("hidden"); 
+    
+    codesListener = db.ref(CODES_PATH).on("value", snap => {
+      adminCodes = snap.val() || {};
+      if(activeTab === "admin") renderPlayersAdminList();
+    });
+    
+    renderAll(); 
+  }catch(e){ 
+    alert("بيانات الأدمن غير صحيحة"); 
+    console.error(e); 
+  } 
+}
+document.getElementById("adminLoginBtn").addEventListener("click", adminLogin);
+
+const performAdminLogout = async () => {
+  await auth.signOut(); 
+  adminMode = false; 
+  if(codesListener) { db.ref(CODES_PATH).off("value", codesListener); }
+  adminCodes = {};
+  setTab("league"); 
+  renderAll(); 
+};
+
+document.getElementById("logoutBtn").addEventListener("click", performAdminLogout); 
+
+document.getElementById("adminLogoutModalBtn").addEventListener("click", async () => {
+  await performAdminLogout();
+  document.getElementById("adminModal").classList.add("hidden");
+  alert("تم تسجيل خروج الأدمن بنجاح.");
+});
+
+// حفظ إعدادات المباراة (التاريخ، الوقت، المكان، رابط القروب)
+document.getElementById("saveInfoBtn").addEventListener("click", async () => {
+  if(!adminMode) return;
+  state.matchInfo = normalizeMatchInfo({
+    date: document.getElementById("infoDate").value,
+    time: document.getElementById("infoTime").value,
+    location: document.getElementById("infoLocation").value,
+    groupLink: document.getElementById("infoGroupLink").value
+  });
+  await writeState();
+  alert("تم حفظ تفاصيل المباراة بنجاح! ستظهر الآن لجميع اللاعبين.");
+  renderAll();
+});
+
+// تسجيل الحضور
+function populatePlayerSelect(){ 
+  const sel=document.getElementById("playerNameSelect"); 
+  sel.innerHTML='<option value="">اختر اسمك</option>' + state.players.map(p=>`<option value="${escapeHTML(p.name)}">${escapeHTML(p.name)}</option>`).join(""); 
+}
+
+function renderRegistration(){ 
+  const grid=document.getElementById("playersGrid"); 
+  document.getElementById("registrationStatus").textContent=state.registrationOpen?"🟢 باب التسجيل للمباراة القادمة مفتوح الآن":"🔴 باب التسجيل مغلق حالياً من قبل الإدارة"; 
+  grid.innerHTML=""; 
+  
+  state.players.forEach(p=>{ 
+    const isMain=state.registrations.includes(p.name);
+    const isReserve=state.reserves.includes(p.name);
+    const canAct=currentPlayerName===p.name;
+    
+    const btn=document.createElement("div"); 
+    btn.className="player"; 
+    
+    let action=''; 
+    let paymentAction=''; 
+    
+    if(isMain || isReserve) {
+      const isPaid = state.paidPlayers.includes(p.name);
+      if(isPaid) {
+        paymentAction = (canAct || adminMode)
+          ? `<button class="chip small" style="background:rgba(22,101,52,0.8); border-color:var(--success); color:#fff;" onclick="togglePayment('${escapeJSString(p.name)}')">تم الدفع ✅</button>`
+          : `<span class="badge-main" style="background:rgba(22,101,52,0.8); color:#fff; border: 1px solid var(--success);">تم الدفع ✅</span>`;
+      } else {
+        paymentAction = (canAct || adminMode)
+          ? `<button class="btn-blue small" style="background:transparent; border: 1px solid var(--gold); color:var(--gold);" onclick="togglePayment('${escapeJSString(p.name)}')">تأكيد الدفع 💳</button>`
+          : `<span class="small" style="color:var(--danger); border:1px solid rgba(185,28,28,0.5); padding: 4px 8px; border-radius:8px;">لم يدفع ❌</span>`;
+      }
+    }
+
+    if(isMain) {
+      action = canAct ? `<span class="badge-main">أساسي</span><button class="btn-danger small" onclick="unregisterSelf()">إلغاء</button>` : adminMode ? `<span class="badge-main">أساسي</span><button class="btn-danger small" onclick="adminUnregister('${escapeJSString(p.name)}')">إلغاء</button>` : `<span class="badge-main">أساسي</span>`; 
+    } else if(isReserve) {
+      action = canAct ? `<span class="badge-reserve">احتياط</span><button class="btn-danger small" onclick="unregisterSelf()">إلغاء</button>` : adminMode ? `<span class="badge-reserve">احتياط</span><button class="btn-danger small" onclick="adminUnregister('${escapeJSString(p.name)}')">إلغاء</button>` : `<span class="badge-reserve">احتياط</span>`; 
+    } else {
+      action = canAct ? `<button class="btn-green small" onclick="registerSelf()">تسجيل حضور</button>` : adminMode ? `<button class="btn-green small" onclick="adminRegister('${escapeJSString(p.name)}')">تسجيل حضور</button>` : `<span class="small" style="opacity:0.75">غير مسجل</span>`; 
+    }
+    
+    btn.innerHTML=`
+      <div class="player-top">
+        ${avatarHTML(p)}
+        <div style="text-align:right">
+          <div style="font-weight:800; font-size: 15px; color: #fff">${escapeHTML(p.name)}</div>
+          <div class="meta">${escapeHTML(p.pos)} | Rating: ${escapeHTML(p.rating)}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="actions">${action}</div>
+        <div>${paymentAction}</div>
+      </div>
+    `; 
+    grid.appendChild(btn); 
+  }); 
+  
+  document.getElementById("statSelected").textContent=`${state.registrations.length}/10`; 
+  document.getElementById("statReserve").textContent=state.reserves.length; 
+  
+  const adminActions = document.getElementById("registrationAdminActions");
+  if(adminActions) adminActions.classList.toggle("hidden", !adminMode);
+  
+  document.getElementById("drawBtn").disabled=!adminMode || state.registrations.length!==10; 
+  document.getElementById("toggleRegistrationBtn").disabled=!adminMode; 
+}
+
+async function registerSelf(){
+  if(!currentPlayerName) return alert("سجل دخولك كلاعب أولاً.");
+  if(!state.registrationOpen) return alert("التسجيل مقفل حالياً.");
+  if(state.registrations.includes(currentPlayerName) || state.reserves.includes(currentPlayerName)) return;
+
+  try {
+    await upsertPlayerQueueEntry(currentPlayerName);
+  } catch (error) {
+    console.error(error);
+    alert("تعذر تسجيل الحضور. قد تحتاج إلى تسجيل الدخول بالكود مرة أخرى.");
+  }
+}
+
+async function unregisterSelf(){
+  if(!currentPlayerName) return;
+  try {
+    await db.ref(`${PLAYER_QUEUE_PATH}/${currentPlayerName}`).remove();
+  } catch (error) {
+    console.error(error);
+    alert("تعذر إلغاء الحضور حالياً.");
+  }
+}
+window.registerSelf = registerSelf;
+window.unregisterSelf = unregisterSelf;
+
+async function adminRegister(name){
+  if(!adminMode) return;
+  if(!state.registrationOpen) return alert("التسجيل مقفل حالياً من قبل الإدارة.");
+  const wasLessThan10 = state.registrations.length < 10;
+  await upsertPlayerQueueEntry(name);
+
+  if (wasLessThan10 && state.registrations.length === 10) {
+    setTimeout(() => {
+      alert("✅ اكتمل العدد الأساسي (10 لاعبين) وتم إجراء القرعة تلقائياً!");
+      document.getElementById("pitchBlack").scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  }
+}
+
+async function adminUnregister(name){
+  if(!adminMode) return;
+  const was10 = state.registrations.length === 10;
+  await db.ref(`${PLAYER_QUEUE_PATH}/${name}`).remove();
+
+  if (was10 && state.registrations.length === 10) {
+    setTimeout(() => alert("✅ تم تصعيد لاعب من الاحتياط وإعادة القرعة تلقائياً لاكتمال العدد!"), 300);
+  }
+}
+window.adminRegister = adminRegister;
+window.adminUnregister = adminUnregister;
+
+// دالة تغيير حالة الدفع
+async function togglePayment(name) {
+  if(!adminMode && currentPlayerName !== name) return;
+  const entry = playerQueue[name];
+  if(!entry) return alert("يجب تسجيل الحضور أولاً قبل تأكيد الدفع.");
+
+  try {
+    await upsertPlayerQueueEntry(name, !entry.paid);
+  } catch (error) {
+    console.error(error);
+    alert("تعذر تحديث حالة الدفع حالياً.");
+  }
+}
+window.togglePayment = togglePayment;
+
+document.getElementById("toggleRegistrationBtn").addEventListener("click", async ()=>{ 
+  if(!adminMode) return; 
+  state.registrationOpen=!state.registrationOpen; 
+  await writeState(); 
+  renderAll(); 
+});
+
+// دالة منطق القرعة (مفصولة ليتم استدعاؤها تلقائياً)
+function performDrawLogic() {
+  let selectedPlayers = state.players.filter(p => state.registrations.includes(p.name)); 
+  let list = shuffle(selectedPlayers), A = [], B = []; 
+  
+  const gk = list.filter(p => p.pos === "🧤"); 
+  if (gk.length >= 2) {
+    A.push(gk[0]); B.push(gk[1]); 
+    list = list.filter(p => p.pos !== "🧤");
+  } 
+  
+  const excellent = list.filter(p => p.rating >= 90);
+  const good = list.filter(p => p.rating < 90);
+  const balanced = [...shuffle(excellent), ...shuffle(good)]; 
+  
+  balanced.forEach(p => { 
+    if (A.length < 5 && A.length <= B.length) A.push(p); 
+    else if (B.length < 5) B.push(p); 
+  }); 
+  
+  state.teams = {A, B}; 
+  lateA = []; lateB = []; dressA = []; dressB = []; 
+}
+
+// إجراء القرعة المزدوجة والمشاركة التلقائية (من قبل الإدارة)
+async function drawTeams(){ 
+  if(!adminMode) return alert("القرعة صلاحية خاصة بالأدمن"); 
+  if(state.registrations.length<10) return alert("لا يمكن بدء القرعة، العدد لم يكتمل (10 لاعبين أساسيين)"); 
+  
+  performDrawLogic();
+  await writeState(); 
+  renderAll(); 
+  
+  document.getElementById("pitchBlack").scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // تنبيه للإرسال للواتساب فوراً بعد القرعة
+  setTimeout(() => {
+    if(confirm("✅ تم اعتماد التشكيلة بنجاح!\nهل تريد إرسال التشكيلة الآن إلى قروب الواتساب مباشرة؟")) {
+      document.getElementById("shareToGroupBtn").click();
+    }
+  }, 500);
+}
+document.getElementById("drawBtn").addEventListener("click", drawTeams);
+
+// إدارة المباراة بعد القرعة (مخالفات ونتائج)
+function toggleListValue(list,name){ 
+  const i=list.indexOf(name); 
+  if(i>=0) list.splice(i,1); 
+  else list.push(name); 
+}
+
+function renderPenaltyBoxes(){ 
+  const pa=document.getElementById("penaltiesA"), pb=document.getElementById("penaltiesB"); 
+  pa.innerHTML=""; pb.innerHTML=""; 
+  
+  const createPenaltyRow = (p, teamLateList, teamDressList, parentBox) => {
+    const row=document.createElement("div"); 
+    row.className="row"; 
+    row.style.justifyContent="space-between"; row.style.alignItems="center"; row.style.marginBottom="10px"; row.style.background="rgba(255,255,255,0.02)"; row.style.padding="6px"; row.style.borderRadius="10px";
+    row.innerHTML=`<span style="font-weight:700;font-size:14px; color:#fff">${escapeHTML(p.name)}</span>`; 
+    
+    const box=document.createElement("div"); box.className="chips"; 
+    
+    const lateBtn=document.createElement("button"); 
+    lateBtn.className="chip small" + (teamLateList.includes(p.name)?" active":""); 
+    lateBtn.textContent="تأخير"; lateBtn.style.padding="6px 10px";
+    lateBtn.onclick=()=>{toggleListValue(teamLateList,p.name); renderPenaltyBoxes();}; 
+    
+    const dressBtn=document.createElement("button"); 
+    dressBtn.className="chip small" + (teamDressList.includes(p.name)?" active":""); 
+    dressBtn.textContent="لبس"; dressBtn.style.padding="6px 10px";
+    dressBtn.onclick=()=>{toggleListValue(teamDressList,p.name); renderPenaltyBoxes();}; 
+    
+    box.appendChild(lateBtn); box.appendChild(dressBtn); 
+    row.appendChild(box); parentBox.appendChild(row); 
+  };
+
+  state.teams.A.forEach(p => createPenaltyRow(p, lateA, dressA, pa));
+  state.teams.B.forEach(p => createPenaltyRow(p, lateB, dressB, pb));
+}
+
+function rebuildFromMatches(matches){ 
+  let rebuiltPlayers=state.players.map(p=>({...p,points:0,played:0,wins:0,losses:0})); 
+  matches.forEach(m=>{ 
+    const [a,b]=m.score.split("-").map(x=>Number(String(x).trim())); 
+    const diff=Math.abs(a-b);
+    const lateSet=new Set(m.late||[]);
+    const dressSet=new Set(m.dress||[]); 
+    
+    rebuiltPlayers=rebuiltPlayers.map(p=>{ 
+      const inA=m.teamA.includes(p.name), inB=m.teamB.includes(p.name); 
+      if(!inA&&!inB) return p; 
+      
+      let pts=1, played=p.played+1, wins=p.wins, losses=p.losses; 
+      
+      if(a>b&&inA){ pts += diff>=7?4:3; wins+=1; } 
+      if(b>a&&inB){ pts += diff>=7?4:3; wins+=1; } 
+      if(a>b&&inB) losses+=1; 
+      if(b>a&&inA) losses+=1; 
+      
+      if(lateSet.has(p.name)) pts-=1; 
+      if(dressSet.has(p.name)) pts-=1; 
+      
+      return {...p,points:p.points+pts,played,wins,losses}; 
+    }); 
+  }); 
+  state.players=rebuiltPlayers; 
+  state.round=matches.length+1; 
+}
+
+document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{ 
+  if(!adminMode) return; 
+  const a=Number(document.getElementById("scoreA").value), b=Number(document.getElementById("scoreB").value); 
+  if(Number.isNaN(a)||Number.isNaN(b)) return alert("الرجاء إدخال النتيجة بشكل أرقام صحيحة"); 
+  
+  const lateSet=new Set([...lateA,...lateB]), dressSet=new Set([...dressA,...dressB]); 
+  
+  state.matches.push({ 
+    round:state.round, 
+    score:`${a} - ${b}`, 
+    teamA:state.teams.A.map(p=>p.name), 
+    teamB:state.teams.B.map(p=>p.name), 
+    late:[...lateSet], 
+    dress:[...dressSet] 
+  }); 
+  
+  rebuildFromMatches(state.matches); 
+  state.registrations=[]; state.reserves=[]; state.registrationOpen=true; 
+  state.paidPlayers=[]; 
+  state.teams={A:[],B:[]}; 
+  document.getElementById("scoreA").value=""; document.getElementById("scoreB").value=""; 
+  lateA=[]; lateB=[]; dressA=[]; dressB=[]; 
+  
+  await db.ref(PLAYER_QUEUE_PATH).remove();
+  playerQueue = {};
+  syncDerivedRegistrationState();
+  await writeState(); 
+  alert("تم اعتماد النتيجة بنجاح وتحديث الإحصائيات!");
+  renderAll(); 
+});
+
+async function deleteMatch(index){ 
+  if(!adminMode) return; 
+  if(!confirm("هل أنت متأكد من مسح هذه المباراة؟ سيتم إعادة حساب جميع النقاط.")) return; 
+  state.matches.splice(index,1); 
+  rebuildFromMatches(state.matches); 
+  await writeState(); 
+  renderAll(); 
+}
+window.deleteMatch=deleteMatch;
+
+// عرض الجداول والإحصائيات
+function renderMatches(){ 
+  const tbody=document.getElementById("matchesTableBody"); 
+  tbody.innerHTML=""; 
+  if(!state.matches.length){ 
+    tbody.innerHTML=`<tr><td colspan="6" class="center" style="padding:30px;color:var(--text-muted)">لا توجد مباريات مسجلة في هذا الموسم حتى الآن</td></tr>`; 
+    return; 
+  } 
+  state.matches.forEach((m,idx)=>{ 
+    const lateText = (m.late&&m.late.length) ? m.late.map(escapeHTML).join("، ") : "لا يوجد";
+    const dressText = (m.dress&&m.dress.length) ? m.dress.map(escapeHTML).join("، ") : "لا يوجد";
+    const penaltiesHtml = `<div class="small">تأخير: ${lateText}<br>لبس: ${dressText}</div>`;
+    
+    const tr=document.createElement("tr"); 
+    tr.innerHTML=`
+      <td><span class="chip small" style="background:#111; color:var(--gold); border-color:var(--gold)">جولة ${m.round}</span></td>
+      <td>${m.teamA.map(escapeHTML).join(" <br> ")}</td>
+      <td>${m.teamB.map(escapeHTML).join(" <br> ")}</td>
+      <td class="center" style="font-weight:900;font-size:18px;color:#fff">${m.score}</td>
+      <td>${penaltiesHtml}</td>
+      <td>${adminMode?`<button class="btn-danger small" onclick="deleteMatch(${idx})">مسح</button>`:'-'}</td>
+    `; 
+    tbody.appendChild(tr); 
+  }); 
+}
+
+function renderStats(){ 
+  const sorted=sortedPlayers(); 
+  const tbody = document.getElementById("statsTableBody");
+  if(!sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="center">لا يوجد لاعبين مسجلين</td></tr>`;
+  } else {
+    tbody.innerHTML=sorted.map((p,i)=>`
+      <tr>
+        <td>
+          <div style="width:28px;height:28px;background:${i===0?'var(--gold)':(i<3?'#333':'transparent')};color:${i===0?'#000':'#fff'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;margin:auto">
+            ${i+1}
+          </div>
+        </td>
+        <td style="font-weight:800; color:#fff">${escapeHTML(p.name)}</td>
+        <td class="center">${p.played}</td>
+        <td class="center" style="color:var(--success);font-weight:700">${p.wins}</td>
+        <td class="center" style="color:var(--danger);font-weight:700">${p.losses}</td>
+        <td class="center" style="font-weight:900;font-size:18px;color:var(--gold);">${p.points}</td>
+      </tr>
+    `).join(""); 
+  }
+  
+  document.getElementById("leaderName").textContent=sorted[0]?.name||"-"; 
+  const mostWins=[...sorted].sort((a,b)=>b.wins-a.wins||b.points-a.points)[0]; 
+  document.getElementById("mostWinsName").textContent=mostWins?.name||"-"; 
+  document.getElementById("archiveCount").textContent=state.seasonArchive.length; 
+}
+
+function renderArchive(){ 
+  const box=document.getElementById("archiveList"); 
+  if(!state.seasonArchive.length){ 
+    box.innerHTML=`<div class="card" style="text-align:center;color:var(--text-muted)">لا يوجد أي مواسم مؤرشفة حتى الآن</div>`; 
+    return; 
+  } 
+  box.innerHTML=state.seasonArchive.map(s=>`
+    <div class="card" style="background:#0a0a0a; border-color:#222">
+      <div class="row" style="justify-content:space-between; align-items:center; border-bottom:1px solid #222; padding-bottom:12px; margin-bottom:12px;">
+        <div style="font-weight:900;font-size:20px;color:var(--gold);">الموسم ${s.seasonNumber}</div>
+        <div class="chip" style="color:#000; background:var(--gold); border-color:var(--gold);">البطل: ${escapeHTML(s.champion)} 👑</div>
+      </div>
+      <div class="small">عدد جولات الموسم: ${s.matches.length} مباريات مسجلة.</div>
+    </div>
+  `).join(""); 
+}
+
+// قسم إدارة اللاعبين (الأدمن)
+function renderPlayersAdminList(){ 
+  const box=document.getElementById("playersAdminList"); 
+  box.innerHTML=state.players.map((p,idx)=>{
+    // جلب الكود من adminCodes
+    const currentCode = normalizeCode(adminCodes[p.name]) || "غير متوفر";
+    
+    return `
+    <div class="card" style="background:#0a0a0a; margin-bottom:12px; padding: 16px;">
+      <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:nowrap; gap:16px;">
+        
+        <div class="player-top">
+          ${avatarHTML(p)}
+          <div>
+            <div style="font-weight:800;font-size:16px; color:#fff">${escapeHTML(p.name)}</div>
+            <div class="small">${escapeHTML(p.pos)} | تقييم ${escapeHTML(p.rating)}</div>
+          </div>
+        </div>
+        
+        <div style="flex:1;">
+           <input id="img-${idx}" value="${escapeHTML(p.image||'')}" placeholder="رابط الصورة (URL)" style="width:100%; font-size:12px; padding:8px;" onchange="savePlayerImage(${idx})">
+        </div>
+
+        <div class="admin-tools">
+          <div class="chip small" style="background:#111; font-family:monospace; letter-spacing:1px; color:var(--gold); border-color:#333;">🔑 ${escapeHTML(currentCode)}</div>
+          <button class="btn-blue small" onclick="regenerateCode('${escapeJSString(p.name)}')" title="توليد كود جديد">توليد</button>
+          <button class="btn-danger small" onclick="deletePlayer(${idx})">حذف</button>
+        </div>
+
+      </div>
+    </div>
+  `}).join(""); 
+}
+
+// تحديث الصور
+async function savePlayerImage(index){ 
+  if(!adminMode) return; 
+  const val=sanitizeUrl(document.getElementById(`img-${index}`).value); 
+  state.players[index].image=val; 
+  
+  // تحديث الصور لو كانوا بالتشكيلة الحالية
+  state.teams.A=state.teams.A.map(s=>s.name===state.players[index].name?{...s,image:val}:s); 
+  state.teams.B=state.teams.B.map(s=>s.name===state.players[index].name?{...s,image:val}:s); 
+  
+  await writeState(); 
+  alert("تم حفظ رابط الصورة");
+  renderAll(); 
+}
+window.savePlayerImage=savePlayerImage;
+
+// توليد كود جديد للاعب موجود
+async function regenerateCode(playerName) {
+  if(!adminMode) return;
+  const newCode = generateRandomCode();
+  if(confirm(`هل أنت متأكد من تغيير الكود السري للاعب (${playerName}) إلى [ ${newCode} ]؟\nملاحظة: تأكد من إعطاء اللاعب الكود الجديد.`)) {
+    try {
+      await db.ref(CODES_PATH + "/" + playerName).set(newCode);
+      adminCodes[playerName] = newCode;
+      alert(`تم التحديث! الكود الجديد: ${newCode}`);
+      renderPlayersAdminList();
+    } catch(e) {
+      alert("حدث خطأ أثناء تحديث الكود.");
+      console.error(e);
+    }
+  }
+}
+window.regenerateCode = regenerateCode;
+
+// إضافة لاعب جديد
+async function addPlayer(){ 
+  if(!adminMode) return; 
+  const name=normalizeName(document.getElementById("newPlayerName").value);
+  const ratingVal=document.getElementById("newPlayerRating").value.trim();
+  const rating=Number(ratingVal);
+  const pos=document.getElementById("newPlayerPos").value.trim();
+  const image=sanitizeUrl(document.getElementById("newPlayerImage").value); 
+  const code=normalizeCode(document.getElementById("newPlayerCode").value); 
+  
+  if(!name||!pos||!code) return alert("الرجاء استكمال اسم اللاعب، المركز، والكود السري!"); 
+  if(!ALLOWED_POSITIONS.includes(pos)) return alert("المركز المحدد غير صالح.");
+  if(code.length < 4) return alert("الكود السري يجب أن يكون أرقام فقط وبحد أدنى 4 أرقام.");
+  if(ratingVal==="" || Number.isNaN(rating)) return alert("خطأ: تقييم اللاعب يجب أن يكون أرقام فقط (مثال: 85، 90) وليس نصوص!");
+  if(state.players.find(p=>p.name===name)) return alert("اسم اللاعب مسجل مسبقاً، اختر اسماً مختلفاً."); 
+  
+  state.players.push({name,rating,pos,image,points:0,played:0,wins:0,losses:0}); 
+  await db.ref(CODES_PATH + "/" + name).set(code); 
+  adminCodes[name] = code;
+  await writeState(); 
+  
+  renderAll(); 
+  
+  document.getElementById("newPlayerName").value=''; 
+  document.getElementById("newPlayerRating").value=''; 
+  document.getElementById("newPlayerPos").value=''; 
+  document.getElementById("newPlayerImage").value=''; 
+  document.getElementById("newPlayerCode").value=''; 
+  alert(`تمت إضافة اللاعب ${name} بنجاح!\nالكود السري الخاص به: ${code}`);
+}
+document.getElementById("addPlayerBtn").addEventListener("click", addPlayer);
+
+async function deletePlayer(index){ 
+  if(!adminMode) return; 
+  const player=state.players[index]; 
+  if(!confirm(`تحذير: هل أنت متأكد من حذف اللاعب (${player.name}) نهائياً؟`)) return; 
+  
+  const was10 = state.registrations.length === 10;
+
+  state.players.splice(index,1); 
+  state.registrations=state.registrations.filter(p=>p!==player.name); 
+  state.reserves=state.reserves.filter(p=>p!==player.name); 
+  state.teams.A=state.teams.A.filter(p=>p.name!==player.name); 
+  state.teams.B=state.teams.B.filter(p=>p.name!==player.name); 
+  
+  if(state.registrations.length<10&&state.reserves.length>0) state.registrations.push(state.reserves.shift()); 
+  
+  if (state.registrations.length === 10 && was10) {
+    performDrawLogic();
+  } else if (state.registrations.length < 10) {
+    state.teams = {A:[], B:[]};
+  }
+
+  await db.ref(CODES_PATH + "/" + player.name).remove(); 
+  delete adminCodes[player.name];
+  await writeState(); 
+  
+  renderAll(); 
+}
+window.deletePlayer=deletePlayer;
+
+// إنهاء الموسم
+document.getElementById("newSeasonBtn").addEventListener("click", async ()=>{ 
+  if(!adminMode) return; 
+  if(!confirm("هل أنت متأكد من إنهاء الموسم الحالي ونقل النتائج للأرشيف وتصفير جميع النقاط؟")) return;
+  
+  if(state.matches.length){ 
+    state.seasonArchive.push({ 
+      seasonNumber:state.seasonNumber, 
+      champion:currentChampion()?.name||"لا يوجد", 
+      table:[...sortedPlayers()], 
+      matches:[...state.matches] 
+    }); 
+  } 
+  
+  state.players=state.players.map(p=>({...p,points:0,played:0,wins:0,losses:0})); 
+  state.teams={A:[],B:[]}; 
+  state.matches=[]; 
+  state.round=1; 
+  state.seasonNumber+=1; 
+  state.registrations=[]; 
+  state.reserves=[]; 
+  state.paidPlayers=[]; 
+  state.registrationOpen=true; 
+  lateA=[]; lateB=[]; dressA=[]; dressB=[]; 
+  
+  await db.ref(PLAYER_QUEUE_PATH).remove();
+  playerQueue = {};
+  syncDerivedRegistrationState();
+  await writeState(); 
+  alert("تم بدء موسم جديد بنجاح!");
+  renderAll(); 
+});
+
+// دوال العرض المجمعة
+function renderTopInfo(){ 
+  document.getElementById("seasonInfo").textContent=`الموسم ${state.seasonNumber} — الجولة ${state.round} / 15`; 
+  document.getElementById("statMatches").textContent=state.matches.length; 
+  document.getElementById("statAdmin").textContent=adminMode?"🟢 مفعل":"🔴 مقفل"; 
+  
+  // عرض تفاصيل المباراة القادمة في الهيدر
+  const infoDisplay = document.getElementById("matchDetailsDisplay");
+  const info = state.matchInfo;
+  if (info && (info.date || info.time || info.location)) {
+    let txt = [];
+    if (info.date) txt.push(`🗓 ${info.date}`);
+    if (info.time) txt.push(`⏰ ${info.time}`);
+    if (info.location) txt.push(`📍 ${info.location}`);
+    infoDisplay.textContent = txt.join("  |  ");
+    infoDisplay.classList.remove("hidden");
+  } else {
+    infoDisplay.classList.add("hidden");
+  }
+
+  const adminStatContainer = document.getElementById("adminStatContainer");
+  if(adminStatContainer) adminStatContainer.classList.toggle("hidden", !adminMode);
+
+  document.getElementById("adminTabBtn").classList.toggle("hidden",!adminMode); 
+  
+  const champCard=document.getElementById("championCard"); 
+  champCard.classList.toggle("hidden", state.round<=15); 
+  document.getElementById("championName").textContent=`${currentChampion()?.name||"لا يوجد"}`; 
+}
+
+function renderTeams(){ 
+  renderPitch("pitchBlack", state.teams.A, "token-black"); 
+  renderPitch("pitchCocktail", state.teams.B, "token-cocktail"); 
+  document.getElementById("matchAdminCard").classList.toggle("hidden",!(adminMode&&state.teams.A.length===5&&state.teams.B.length===5)); 
+  renderPenaltyBoxes(); 
+  renderSharePreview(); 
+}
+
+function renderAdminTab(){ 
+  if(!adminMode && activeTab==="admin") setTab("league"); 
+  // تعبئة خانات المباراة في الإدارة
+  if (adminMode && state.matchInfo) {
+     document.getElementById("infoDate").value = state.matchInfo.date || "الجمعة";
+     document.getElementById("infoTime").value = state.matchInfo.time || "11:00 مساءً";
+     document.getElementById("infoLocation").value = state.matchInfo.location || "";
+     document.getElementById("infoGroupLink").value = state.matchInfo.groupLink || "";
+  }
+}
+
+function renderLoginStates() {
+  const pStatus = document.getElementById("playerLoginStatus");
+  const pActions = document.getElementById("playerLoginActions");
+  const pDesc = document.getElementById("playerLoginDesc");
+  const pLogout = document.getElementById("playerLogoutBtn");
+
+  if (currentPlayerName) {
+    if (pStatus) pStatus.textContent = `✅ مسجل كلاعب: ${currentPlayerName}`;
+    if(pActions) pActions.classList.add("hidden");
+    if(pDesc) pDesc.textContent = "يمكنك الآن تسجيل الحضور بنفسك وتأكيد الدفع من اسمك فقط.";
+    if(pLogout) pLogout.classList.remove("hidden");
+  } else {
+    if (pStatus) pStatus.textContent = "غير مسجل دخول";
+    if(pActions) pActions.classList.remove("hidden");
+    if(pDesc) pDesc.textContent = "اختر اسمك وأدخل الكود السري الخاص بك لتتمكن من تسجيل حضورك وتأكيد الدفع من حسابك فقط.";
+    if(pLogout) pLogout.classList.add("hidden");
+  }
+
+  const aStatus = document.getElementById("adminLoginStatus");
+  const aActions = document.getElementById("adminLoginActions");
+  const aLogout = document.getElementById("adminLogoutModalBtn");
+  
+  if (adminMode) {
+    aStatus.textContent = `✅ الأدمن متصل`;
+    if(aActions) aActions.classList.add("hidden");
+    if(aLogout) aLogout.classList.remove("hidden");
+  } else {
+    aStatus.textContent = "الأدمن غير مسجل دخول";
+    if(aActions) aActions.classList.remove("hidden");
+    if(aLogout) aLogout.classList.add("hidden");
+  }
+}
+
+function renderAll(){ 
+  populatePlayerSelect();
+  renderTopInfo(); 
+  renderRegistration(); 
+  renderTeams(); 
+  renderMatches(); 
+  renderStats(); 
+  renderArchive(); 
+  renderAdminTab(); 
+  if(activeTab === "admin" && adminMode) renderPlayersAdminList();
+  renderLoginStates(); 
+}
+
+// أزرار النسخ والمشاركة
+document.getElementById("copyShareBtn").addEventListener("click", async ()=>{ 
+  const text=renderSharePreview(); 
+  try{ 
+    await navigator.clipboard.writeText(text); 
+    alert("تم نسخ التشكيلة بنجاح للملصقات والمجموعات"); 
+  }catch(e){ 
+    alert("تعذر النسخ تلقائياً، يرجى تحديد النص ونسخه يدوياً."); 
+  } 
+});
+document.getElementById("shareAllBtn").addEventListener("click", ()=>shareText(renderSharePreview()));
+
+const singleFooter = "\n\n💳 لا تنسى القطية ومض على الرقم 95000659 وبس تدفع أكد دفعك بالموقع.";
+document.getElementById("shareBlackBtn").addEventListener("click", ()=>shareText(`${getMatchHeader()}\n⚫ تشكيل الفريق الأسود:\n${state.teams.A.map(p=>`${p.pos} ${p.name}`).join("\n")||"-"}${singleFooter}`));
+document.getElementById("shareCocktailBtn").addEventListener("click", ()=>shareText(`${getMatchHeader()}\n👑 تشكيل فريق الكوكتيل:\n${state.teams.B.map(p=>`${p.pos} ${p.name}`).join("\n")||"-"}${singleFooter}`));
+
+// مشاركة مباشرة للمجموعة (الواتساب)
+document.getElementById("shareToGroupBtn").addEventListener("click", async () => {
+  const text = renderSharePreview();
+  try {
+    await navigator.clipboard.writeText(text); 
+    if (state.matchInfo && state.matchInfo.groupLink) {
+       alert("✅ تم نسخ التشكيلة بنجاح!\nسيتم تحويلك الآن إلى قروب الواتساب.. قم بـ 'لصق' (Paste) ثم إرسال.");
+       window.open(state.matchInfo.groupLink, "_blank");
+    } else {
+       alert("✅ تم نسخ التشكيلة بنجاح!\n(ملاحظة: لم تضف رابط القروب بالإعدادات، سيتم فتح واتساب بشكل عام).");
+       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    }
+  } catch (e) {
+     alert("تعذر النسخ التلقائي، يرجى استخدام زر النسخ العادي.");
+  }
+});
+
+// أحداث نافذة الإدارة (Modal)
+document.getElementById('openAdminModalBtn').addEventListener('click', () => {
+  document.getElementById('adminModal').classList.remove('hidden');
+});
+document.getElementById('closeAdminModalBtn').addEventListener('click', () => {
+  document.getElementById('adminModal').classList.add('hidden');
+});
+
+// ==========================================
+// 🚀 نظام تحويل الموقع إلى تطبيق (PWA Logic)
+// ==========================================
+
+// 1. توليد أيقونة التطبيق الفاخرة افتراضياً كـ SVG
+const appIcon = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23000000'/><text x='50' y='50' font-size='50' text-anchor='middle' dominant-baseline='central' fill='%23d4af37'>🏆</text></svg>";
+
+// 2. إنشاء ملف Manifest برمجياً
+const manifestJSON = {
+  name: "دوري الحداد الممتاز",
+  short_name: "دوري الحداد",
+  start_url: window.location.href,
+  display: "standalone",
+  background_color: "#000000",
+  theme_color: "#000000",
+  orientation: "portrait",
+  icons: [{ src: appIcon, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+};
+
+// تحويل Manifest إلى رابط Blob وإضافته للـ Head
+const manifestBlob = new Blob([JSON.stringify(manifestJSON)], { type: "application/json" });
+document.getElementById("manifest-link").href = URL.createObjectURL(manifestBlob);
+
+// 3. إنشاء Service Worker برمجياً (مطلوب لعمل الـ PWA)
+const swCode = `
+  self.addEventListener('install', (e) => self.skipWaiting());
+  self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+  self.addEventListener('fetch', (e) => { /* تمرير الطلبات للأونلاين */ });
+`;
+const swBlob = new Blob([swCode], { type: "application/javascript" });
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(URL.createObjectURL(swBlob))
+    .then(() => console.log('✅ PWA Ready!'))
+    .catch(err => console.log('SW Error:', err));
+}
+
+// 4. التحكم بظهور زر التثبيت
+let deferredPrompt;
+const installBtn = document.getElementById("installAppBtn");
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); // منع ظهور رسالة المتصفح الافتراضية
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-flex'; // إظهار الزر الخاص بنا
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    installBtn.style.display = 'none'; // إخفاء الزر بعد الموافقة
+  }
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+  console.log('App Installed Successfully!');
+});
+
+// بدء التشغيل
+ensureAnonymousPlayerSession();
+listenPlayerQueue();
+listenState();
+</script>
+</body>
+</html>
