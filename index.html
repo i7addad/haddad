@@ -1369,7 +1369,7 @@ let ratingsState = {};
 let ratingsListener = null;
 let forcingLogoutByCodeChange = false;
 let restoringSessionInProgress = false;
-let currentEvaluationContext = { roundKey: "", players: [] };
+let currentEvaluationContext = { roundKey: "", players: [], roundLabel: "", mode: "" };
 
 function closeAppAlert(){
   const modal = document.getElementById("appAlertModal");
@@ -1428,6 +1428,35 @@ function getRatingRoundKey(round){
 
 function getLatestRatedMatch(){
   return state.matches.length ? state.matches[state.matches.length - 1] : null;
+}
+
+function getEvaluationTarget(){
+  const latestMatch = getLatestRatedMatch();
+  if(latestMatch){
+    return {
+      mode: "post-match",
+      round: latestMatch.round,
+      roundKey: getRatingRoundKey(latestMatch.round),
+      roundLabel: `الجولة ${latestMatch.round}`,
+      players: [...latestMatch.teamA, ...latestMatch.teamB]
+    };
+  }
+
+  // Allow anonymous rating before the first match so admin can tune ratings ahead of draw.
+  if(state.round === 1){
+    const prePlayers = (state.registrations.length ? state.registrations : state.players.map(p => p.name))
+      .map(normalizeName)
+      .filter(Boolean);
+    return {
+      mode: "pre-match",
+      round: 1,
+      roundKey: `${getRatingRoundKey(1)}_prematch`,
+      roundLabel: "قبل أول مباراة",
+      players: [...new Set(prePlayers)]
+    };
+  }
+
+  return null;
 }
 
 function getRoundRatingEntry(roundKey){
@@ -2369,29 +2398,29 @@ function renderEvaluation(){
 
   if(!statusEl || !topEl || !gridEl || !submitBtn || !applyBtn) return;
 
-  const latestMatch = getLatestRatedMatch();
-  if(!latestMatch){
-    currentEvaluationContext = { roundKey: "", players: [] };
-    statusEl.textContent = "لا توجد مباراة مكتملة للتقييم حالياً.";
+  const target = getEvaluationTarget();
+  if(!target){
+    currentEvaluationContext = { roundKey: "", players: [], roundLabel: "", mode: "" };
+    statusEl.textContent = "لا توجد جولة تقييم متاحة حالياً.";
     topEl.textContent = "";
-    gridEl.innerHTML = `<div class="small">بعد اعتماد نتيجة أول مباراة، يظهر نموذج التقييم هنا.</div>`;
+    gridEl.innerHTML = `<div class="small">يظهر نموذج التقييم بعد اكتمال بيانات اللاعبين.</div>`;
     submitBtn.disabled = true;
     applyBtn.classList.add("hidden");
     return;
   }
 
-  const roundKey = getRatingRoundKey(latestMatch.round);
+  const roundKey = target.roundKey;
   const roundEntry = getRoundRatingEntry(roundKey);
-  const players = (Array.isArray(roundEntry.players) && roundEntry.players.length ? roundEntry.players : [...latestMatch.teamA, ...latestMatch.teamB])
+  const players = (Array.isArray(roundEntry.players) && roundEntry.players.length ? roundEntry.players : target.players)
     .map(normalizeName)
     .filter(Boolean);
 
-  currentEvaluationContext = { roundKey, players };
+  currentEvaluationContext = { roundKey, players, roundLabel: target.roundLabel, mode: target.mode, round: target.round };
 
   const voteClosed = hasSubmittedEvaluation(roundKey);
   statusEl.textContent = voteClosed
-    ? `تم إرسال تقييمك للجولة ${latestMatch.round}. التقييم مجهول وتم اعتماده.`
-    : `قيّم لاعبي الجولة ${latestMatch.round} بشكل مجهول من 1 إلى 10.`;
+    ? `تم إرسال تقييمك (${target.roundLabel}). التقييم مجهول وتم اعتماده.`
+    : `قيّم اللاعبين (${target.roundLabel}) بشكل مجهول من 1 إلى 10.`;
 
   const ranking = players
     .map(name => ({ name, ...getPlayerRoundRating(roundKey, name) }))
@@ -2440,12 +2469,21 @@ function renderEvaluation(){
 }
 
 async function submitEvaluation(){
-  const { roundKey, players } = currentEvaluationContext;
+  const { roundKey, players, round, mode } = currentEvaluationContext;
   if(!roundKey || !players.length) return alert("لا توجد مباراة جاهزة للتقييم حالياً.");
   if(!currentPlayerName) return alert("سجل دخولك كلاعب أولاً لإرسال التقييم.");
   if(hasSubmittedEvaluation(roundKey)) return alert("تم إرسال تقييمك مسبقاً لهذه الجولة.");
 
   try {
+    await db.ref(`${RATINGS_PATH}/${roundKey}`).update({
+      seasonNumber: state.seasonNumber,
+      round: Number(round) || 1,
+      mode: mode || "post-match",
+      players,
+      applied: !!getRoundRatingEntry(roundKey).applied,
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+
     await Promise.all(players.map(async (name, idx) => {
       const slider = document.getElementById(`eval-${idx}`);
       const score = Math.min(10, Math.max(1, Number(slider?.value || 7)));
