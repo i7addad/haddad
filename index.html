@@ -2475,31 +2475,42 @@ async function submitEvaluation(){
   if(hasSubmittedEvaluation(roundKey)) return alert("تم إرسال تقييمك مسبقاً لهذه الجولة.");
 
   try {
-    await db.ref(`${RATINGS_PATH}/${roundKey}`).update({
+    // First, save round metadata without players array (Firebase doesn't support arrays)
+    const metadata = {
       seasonNumber: state.seasonNumber,
       round: Number(round) || 1,
       mode: mode || "post-match",
-      players,
       applied: !!getRoundRatingEntry(roundKey).applied,
       updatedAt: firebase.database.ServerValue.TIMESTAMP
+    };
+    await db.ref(`${RATINGS_PATH}/${roundKey}`).update(metadata);
+
+    // Then submit votes for each player
+    const votePromises = players.map(async (name, idx) => {
+      const slider = document.getElementById(`eval-${idx}`);
+      if(!slider) return; // Skip if slider doesn't exist
+      const score = Math.min(10, Math.max(1, Number(slider.value || 7)));
+      const encodedKey = encodeURIComponent(normalizeName(name));
+      
+      return new Promise((resolve, reject) => {
+        db.ref(`${RATINGS_PATH}/${roundKey}/votes/${encodedKey}`).transaction(current => {
+          const sum = Number(current?.sum) || 0;
+          const count = Number(current?.count) || 0;
+          return { sum: sum + score, count: count + 1 };
+        }, (error, committed, snapshot) => {
+          if(error) reject(error);
+          else resolve(snapshot.val());
+        });
+      });
     });
 
-    await Promise.all(players.map(async (name, idx) => {
-      const slider = document.getElementById(`eval-${idx}`);
-      const score = Math.min(10, Math.max(1, Number(slider?.value || 7)));
-      const encodedKey = encodeURIComponent(normalizeName(name));
-      await db.ref(`${RATINGS_PATH}/${roundKey}/votes/${encodedKey}`).transaction(current => {
-        const sum = Number(current?.sum) || 0;
-        const count = Number(current?.count) || 0;
-        return { sum: sum + score, count: count + 1 };
-      });
-    }));
+    await Promise.all(votePromises);
 
     markEvaluationSubmitted(roundKey);
     alert("شكراً! تم إرسال تقييمك بشكل مجهول.");
     renderEvaluation();
   } catch (error) {
-    console.error(error);
+    console.error("Evaluation submission error:", error);
     alert("تعذر إرسال التقييم حالياً. حاول مرة أخرى.");
   }
 }
@@ -2593,7 +2604,8 @@ function renderPlayersAdminList(){
 
         <div class="admin-tools">
           <div class="chip small" style="background:#111; font-family:monospace; letter-spacing:1px; color:var(--gold); border-color:#333;">🔑 ${escapeHTML(currentCode)}</div>
-          <button class="btn-blue small" onclick="regenerateCode('${escapeJSString(p.name)}')" title="توليد كود جديد">توليد</button>
+          <button class="btn-blue small" onclick="regenerateCode('${escapeJSString(p.name)}')" title="توليد كود عشوائي">🎲 توليد</button>
+          <button class="btn-purple small" onclick="setCustomCode('${escapeJSString(p.name)}')" title="إدخال كود مخصص">✏️ تخصيص</button>
           <button class="btn-danger small" onclick="deletePlayer(${idx})">حذف</button>
         </div>
 
@@ -2695,6 +2707,33 @@ async function regenerateCode(playerName) {
   }
 }
 window.regenerateCode = regenerateCode;
+
+// تخصيص كود مخصص للاعب
+async function setCustomCode(playerName) {
+  if(!adminMode) return;
+  const customCode = prompt(`أدخل الكود السري المخصص للاعب (${playerName}):\n(أرقام فقط، بحد أدنى 4 أرقام)`);
+  
+  if(customCode === null) return; // المستخدم اختار الإلغاء
+  
+  const normalized = normalizeCode(customCode);
+  if(!normalized || normalized.length < 4) {
+    return alert("الخطأ: الكود يجب أن يكون أرقام فقط وبحد أدنى 4 أرقام.");
+  }
+  
+  if(confirm(`هل أنت متأكد من تعيين الكود [ ${normalized} ] للاعب (${playerName})?\nملاحظة: تأكد من إعطاء اللاعب الكود الصحيح.`)) {
+    try {
+      await db.ref(CODES_PATH + "/" + playerName).set(normalized);
+      adminCodes[playerName] = normalized;
+      publicCodes[playerName] = normalized;
+      alert(`تم التحديث! الكود الجديد: ${normalized}`);
+      renderPlayersAdminList();
+    } catch(e) {
+      alert("حدث خطأ أثناء تحديث الكود.");
+      console.error(e);
+    }
+  }
+}
+window.setCustomCode = setCustomCode;
 
 // إضافة لاعب جديد
 async function addPlayer(){ 
