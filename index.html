@@ -20,331 +20,791 @@
 
   <style>
     :root {
-      color-scheme: dark; /* إجبار المتصفح على استخدام ألوان الوضع الداكن للقوائم */
-      /* ألوان بطولة الأبطال الفاخر (Premium Black & Gold) */
-      --bg-main: #000000; 
-      --bg-panel: #0a0a0a;
-      --border: #262626;
-      --border-focus: #d4af37;
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --gold: #d4af37;
-      --gold-light: #fef08a;
-      --gold-dark: #854d0e;
-      --danger: #b91c1c;
-      --success: #166534;
+      color-scheme: dark;
+      --bg-main:   #050507;
+      --bg-panel:  #0c0c10;
+      --border:    rgba(255, 255, 255, 0.06);
+      --border-focus: rgba(245, 197, 24, 0.5);
+      --text-main: #F0F0F0;
+      --text-muted:#7C8494;
+      --gold:      #F5C518;
+      --gold-light:#FFF9C0;
+      --gold-dark: #9A7A0A;
+      --danger:    #FF5050;
+      --success:   #00E676;
     }
     
-    * { box-sizing: border-box; }
-    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      margin: 0;
       font-family: 'Cairo', Tahoma, Arial, sans-serif;
       color: var(--text-main);
       background: var(--bg-main);
-      background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #000 70%);
+      background-image:
+        radial-gradient(ellipse 60% 40% at 18% 0%,  rgba(245,197,24,0.06) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 30% at 82% 100%, rgba(80,50,0,0.05)   0%, transparent 65%);
       background-attachment: fixed;
       min-height: 100vh;
-      padding-bottom: 40px;
+      padding-bottom: 60px;
     }
 
-    .wrap { max-width: 1450px; margin: auto; padding: 20px; }
+    .wrap { max-width: 1380px; margin: auto; padding: 20px; }
 
-    /* البطاقات الفاخرة الداكنة */
+    /* ─── CARD ───────────────────────────────────── */
     .card {
-      background: linear-gradient(145deg, #111, #050505) !important;
+      background: rgba(11, 11, 17, 0.9) !important;
       border: 1px solid var(--border) !important;
-      border-radius: 20px;
-      padding: 24px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.02);
-      margin-bottom: 20px;
-      animation: fadeUp 0.4s ease forwards;
+      border-radius: 22px;
+      padding: 26px;
+      box-shadow: 0 20px 55px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+      margin-bottom: 18px;
+      animation: fadeUp 0.45s cubic-bezier(.4,0,.2,1) forwards;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity:0; transform:translateY(18px); }
+      to   { opacity:1; transform:translateY(0); }
     }
 
-    /* الهيدر الفاخر */
+    /* ─── HERO ───────────────────────────────────── */
     .hero {
+      background: linear-gradient(155deg, #100e05 0%, #06050c 100%) !important;
+      border: 1px solid rgba(245,197,24,0.14) !important;
+      padding: 44px 28px 34px !important;
+      overflow: hidden;
       position: relative;
-      background: linear-gradient(135deg, #111, #000) !important;
-      border-bottom: 2px solid var(--gold) !important;
-      box-shadow: 0 10px 30px rgba(212, 175, 55, 0.05) !important;
+      text-align: center;
     }
 
-    h1, h2, h3 { margin: 0 0 12px; font-weight: 800; letter-spacing: -0.5px; }
-    h2 { color: #fff; }
-    h3 { color: var(--gold-light); }
-    .sub { color: var(--text-muted); font-size: 14px; font-weight: 600; }
-    
-    .title-xl { 
-      font-size: 38px; 
-      font-weight: 900; 
-      background: linear-gradient(to right, var(--gold-light), var(--gold)); 
-      -webkit-background-clip: text; 
-      -webkit-text-fill-color: transparent; 
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -160px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px; height: 380px;
+      background: radial-gradient(ellipse, rgba(245,197,24,0.08) 0%, transparent 70%);
+      pointer-events: none;
     }
 
-    .tabs, .chips, .row, .actions { display: flex; gap: 12px; flex-wrap: wrap; }
-    
-    /* الأزرار العادية */
-    .chip, button {
-      padding: 10px 18px;
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 8%; right: 8%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,197,24,0.55), transparent);
+    }
+
+    /* Floating trophy emblem */
+    .hero-emblem {
+      font-size: 62px;
+      line-height: 1;
+      filter: drop-shadow(0 0 30px rgba(245,197,24,0.5));
+      margin-bottom: 6px;
+      display: block;
+      animation: floatTrophy 4s ease-in-out infinite;
+    }
+
+    @keyframes floatTrophy {
+      0%, 100% { transform: translateY(0);    filter: drop-shadow(0 0 30px rgba(245,197,24,0.5)); }
+      50%       { transform: translateY(-7px); filter: drop-shadow(0 0 46px rgba(245,197,24,0.7)); }
+    }
+
+    .hero-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Admin gear button (CSS-only hover, no inline JS) */
+    .admin-gear-btn {
+      position: absolute;
+      top: 16px; left: 16px;
+      background: rgba(0,0,0,0.45);
+      border: 1px solid rgba(245,197,24,0.28) !important;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(255,255,255,0.03);
+      width: 44px; height: 44px;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; justify-content: center; align-items: center;
+      transition: all 0.28s cubic-bezier(.4,0,.2,1);
+      z-index: 100;
+      color: var(--gold);
+      padding: 0;
+    }
+
+    .admin-gear-btn:hover:not(:disabled) {
+      background: var(--gold) !important;
+      color: #000 !important;
+      border-color: var(--gold) !important;
+      transform: rotate(55deg) !important;
+      box-shadow: 0 0 18px rgba(245,197,24,0.35) !important;
+    }
+
+    /* Match info badge in hero */
+    .match-badge {
+      color: var(--gold-light);
+      font-weight: 700;
+      font-size: 13px;
+      background: rgba(245,197,24,0.08);
+      padding: 6px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(245,197,24,0.22);
+      display: inline-block;
+    }
+
+    /* Tab navigation pill group */
+    .hero-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 5px;
+    }
+
+    .tabs .chip {
+      border: none;
+      background: transparent;
+      border-radius: 11px;
+      padding: 9px 18px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .tabs .chip:hover:not(:disabled) {
+      background: rgba(255,255,255,0.07);
+      transform: none;
+      box-shadow: none;
       color: #fff;
+    }
+
+    .tabs .chip.active {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: #000 !important;
+      box-shadow: 0 2px 14px rgba(245,197,24,0.22);
+      font-weight: 900;
+    }
+
+    /* ─── TYPOGRAPHY ──────────────────────────────── */
+    h1, h2, h3 { font-weight: 800; }
+    h2 { color: #fff; font-size: 19px; margin-bottom: 10px; }
+    h3 { color: #FAE06A; font-size: 16px; margin-bottom: 10px; }
+    .sub   { color: var(--text-muted); font-size: 14px; font-weight: 600; }
+    .small { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+    .hidden { display: none !important; }
+    .center { text-align: center; }
+    .row   { display: flex; gap: 12px; flex-wrap: wrap; }
+    .chips, .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Title gradient */
+    .title-xl {
+      font-size: 42px;
+      font-weight: 900;
+      background: linear-gradient(180deg, #FFEE88 0%, #F5C518 42%, #9A7A0A 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    /* ─── BUTTONS ─────────────────────────────────── */
+    .chip, button {
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: #bbb;
       cursor: pointer;
       font-weight: 700;
       font-family: inherit;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 14px;
+      transition: all 0.22s cubic-bezier(.4,0,.2,1);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
+      white-space: nowrap;
+      line-height: 1.4;
     }
 
     .chip:hover, button:hover:not(:disabled) {
-      background: #1a1a1a;
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    }
+
+    .chip.active {
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      color: #000 !important;
+      border-color: transparent;
+      box-shadow: 0 4px 18px rgba(245,197,24,0.22);
+      font-weight: 900;
+    }
+
+    .chip.active:hover {
+      background: linear-gradient(135deg, #b09020, #ffe060) !important;
+      color: #000 !important;
+    }
+
+    .btn-green {
+      background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 55%, var(--gold-light) 100%);
+      color: #000 !important;
+      border: none;
+      font-weight: 900;
+      box-shadow: 0 3px 18px rgba(245,197,24,0.18);
+    }
+
+    .btn-green:hover:not(:disabled) {
+      filter: brightness(1.08);
+      box-shadow: 0 6px 28px rgba(245,197,24,0.32);
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     }
 
-    .chip.active, .chip.active:hover { 
-      background: var(--gold); /* لون احتياطي */
-      background: linear-gradient(135deg, var(--gold-dark), var(--gold)); 
-      color: #000 !important; /* إجبار بقاء النص باللون الأسود دائماً */
-      border-color: var(--gold-light); 
-      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); 
+    .btn-blue {
+      background: rgba(41,121,255,0.08);
+      color: #82b4ff;
+      border: 1px solid rgba(41,121,255,0.22);
     }
 
-    /* أزرار الإجراءات الفاخرة */
-    .btn-green { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: #000; border: none; box-shadow: 0 4px 15px rgba(212,175,55,0.2); }
-    .btn-green:hover:not(:disabled) { background: var(--gold-light); color: #000; box-shadow: 0 4px 20px rgba(212,175,55,0.4); }
-    
-    .btn-blue { background: #0a0a0a; color: var(--gold); border: 1px solid var(--gold); }
-    .btn-blue:hover:not(:disabled) { background: var(--gold); color: #000; }
-    
-    .btn-danger { background: #1a0505; color: #ef4444; border: 1px solid #7f1d1d; }
-    .btn-danger:hover:not(:disabled) { background: #ef4444; color: #fff; }
-    
-    .btn-pink { background: #1a1a1a; color: #fff; border: 1px solid #444; }
-    .btn-pink:hover:not(:disabled) { background: #333; color: var(--gold); border-color: var(--gold); }
-    
-    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(1); }
+    .btn-blue:hover:not(:disabled) {
+      background: rgba(41,121,255,0.18);
+      border-color: rgba(41,121,255,0.4);
+      color: #fff;
+    }
 
+    .btn-danger {
+      background: rgba(255,80,80,0.08);
+      color: #ff8080;
+      border: 1px solid rgba(255,80,80,0.22);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(255,80,80,0.18);
+      border-color: rgba(255,80,80,0.4);
+      color: #ff5050;
+    }
+
+    .btn-pink {
+      background: rgba(255,255,255,0.04);
+      color: #999;
+      border: 1px solid var(--border);
+    }
+
+    .btn-pink:hover:not(:disabled) {
+      background: rgba(245,197,24,0.08);
+      color: var(--gold);
+      border-color: rgba(245,197,24,0.28);
+    }
+
+    button:disabled {
+      opacity: 0.32;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+      filter: grayscale(0.6);
+    }
+
+    /* ─── INPUTS ──────────────────────────────────── */
     input, textarea, select {
       padding: 12px 16px;
       border-radius: 12px;
-      border: 1px solid #333;
-      background: #050505;
-      color: #fff;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: #f0f0f0;
       font-family: inherit;
       font-weight: 600;
-      transition: all 0.3s;
-      min-width: 160px;
-    }
-    
-    /* تنسيق الخيارات داخل القوائم المنسدلة */
-    select option {
-      background-color: #111;
-      color: #fff;
-      font-weight: 600;
+      font-size: 14px;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      min-width: 150px;
     }
 
-    input:focus, select:focus {
+    select option { background: #111; color: #fff; font-weight: 600; }
+
+    input:focus, select:focus, textarea:focus {
       outline: none;
-      background: #0a0a0a;
-      border-color: var(--gold);
-      box-shadow: 0 0 10px rgba(212,175,55,0.2);
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(245,197,24,0.5);
+      box-shadow: 0 0 0 3px rgba(245,197,24,0.07);
     }
 
-    .small { font-size: 13px; color: var(--text-muted); font-weight: 600; }
-    .hidden { display: none !important; }
+    input::placeholder { color: rgba(255,255,255,0.24); }
 
-    /* إحصائيات بستايل ملكي */
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
-    .stat { 
-      border-radius: 16px; 
-      padding: 18px; 
-      background: #0a0a0a !important; 
-      border: 1px solid #222 !important;
+    /* ─── STATS ───────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      border-radius: 18px;
+      padding: 20px;
+      background: rgba(12,12,18,0.9) !important;
+      border: 1px solid var(--border) !important;
       position: relative;
       overflow: hidden;
-      font-weight: 700; color: var(--text-muted);
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: transform .25s, box-shadow .25s, border-color .25s;
     }
+
     .stat::after {
-      content: ''; position: absolute; bottom: 0; right: 0; left: 0; height: 2px;
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: 0 0 18px 18px;
     }
-    .stat:nth-child(1)::after { background: var(--gold); }
-    .stat:nth-child(2)::after { background: var(--success); }
-    .stat:nth-child(3)::after { background: var(--danger); }
-    .stat:nth-child(4)::after { background: #555; }
-    .stat .v { font-size: 32px; font-weight: 900; margin-top: 5px; color: #fff; }
 
-    .grid-players { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-    .player { 
-      padding: 14px; 
-      border-radius: 16px; 
-      border: 1px solid #222; 
-      background: rgba(255,255,255,0.01); 
+    .stat:nth-child(1)::after { background: linear-gradient(90deg, transparent, var(--gold),    transparent); }
+    .stat:nth-child(2)::after { background: linear-gradient(90deg, transparent, var(--success), transparent); }
+    .stat:nth-child(3)::after { background: linear-gradient(90deg, transparent, var(--danger),  transparent); }
+    .stat:nth-child(4)::after { background: linear-gradient(90deg, transparent, #888,           transparent); }
+
+    .stat:hover {
+      transform: translateY(-3px);
+      border-color: rgba(245,197,24,0.1) !important;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    }
+
+    .stat .v {
+      font-size: 36px;
+      font-weight: 900;
+      color: #fff;
+      margin-top: 7px;
+      line-height: 1;
+    }
+
+    /* ─── PLAYER CARDS ────────────────────────────── */
+    .grid-players { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 12px; }
+
+    .player {
+      padding: 15px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
       text-align: right;
-      transition: all 0.3s;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
     }
-    .player:hover { border-color: var(--gold); background: rgba(212,175,55,0.02); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-    .player .meta { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
-    
-    .player-top { display: flex; gap: 12px; align-items: center; }
-    .avatar { 
-      width: 50px; height: 50px; 
-      border-radius: 12px; 
-      object-fit: cover; 
-      background: linear-gradient(135deg, #111, #222); color: var(--gold);
-      display: flex; align-items: center; justify-content: center; 
+
+    .player:hover {
+      border-color: rgba(245,197,24,0.22);
+      transform: translateY(-3px);
+      box-shadow: 0 14px 34px rgba(0,0,0,0.4), inset 0 1px 0 rgba(245,197,24,0.05);
+      background: rgba(245,197,24,0.02);
+    }
+
+    .player .meta { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+    .player-top { display: flex; gap: 10px; align-items: center; }
+
+    .avatar {
+      width: 50px; height: 50px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: rgba(245,197,24,0.07);
+      color: var(--gold);
+      display: flex; align-items: center; justify-content: center;
       font-weight: 900; font-size: 18px;
-      flex: 0 0 50px; 
-      border: 1px solid #333; 
+      flex: 0 0 50px;
+      border: 1px solid rgba(245,197,24,0.14);
     }
 
-    .badge-main { color: #000; font-weight: 900; background: var(--gold); padding: 4px 10px; border-radius: 8px; font-size: 13px; }
-    .badge-reserve { color: #fff; font-weight: 900; background: #333; border: 1px solid #555; padding: 4px 10px; border-radius: 8px; font-size: 13px; }
+    .badge-main {
+      color: #000; font-weight: 900;
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+      padding: 3px 11px; border-radius: 999px; font-size: 12px;
+      box-shadow: 0 2px 8px rgba(245,197,24,0.18);
+    }
 
-    .formation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
-    .formation-card { padding: 20px; border-radius: 24px; border: 1px solid #222; background: #0a0a0a !important; }
-    .formation-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .badge-reserve {
+      color: #888; font-weight: 700;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      padding: 3px 11px; border-radius: 999px; font-size: 12px;
+    }
 
-    /* الملعب الفاخر (Dark Green & Gold) */
+    /* ─── FORMATION ───────────────────────────────── */
+    .formation-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 18px; }
+
+    .formation-card {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: rgba(10,10,15,0.9) !important;
+      backdrop-filter: blur(10px);
+    }
+
+    .formation-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+
+    /* ─── PITCH ───────────────────────────────────── */
     .pitch {
       position: relative;
       height: 680px;
       border-radius: 16px;
       overflow: hidden;
-      background: linear-gradient(180deg, #064e3b 0%, #022c22 100%) !important;
-      box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
-      border: 2px solid #222;
+      background:
+        repeating-linear-gradient(180deg,
+          rgba(0,0,0,0.058) 0, rgba(0,0,0,0.058) 62px,
+          transparent 62px, transparent 124px),
+        linear-gradient(175deg, #16703F 0%, #0D5130 50%, #16703F 100%) !important;
+      box-shadow: inset 0 0 90px rgba(0,0,0,0.55), 0 20px 50px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.04);
     }
-    
-    /* تخطيط الملعب الذهبي */
-    .pitch:before { content:""; position:absolute; inset: 16px; border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 8px; }
-    .pitch .half { position:absolute; top:50%; left:16px; right:16px; height:0; border-top: 2px solid rgba(212, 175, 55, 0.3); }
-    .pitch .center-circle { position:absolute; top:50%; left:50%; width: 130px; height: 130px; border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 50%; transform: translate(-50%,-50%); }
-    .pitch .center-dot { position:absolute; top:50%; left:50%; width: 8px; height: 8px; background: rgba(212, 175, 55, 0.6); border-radius: 50%; transform: translate(-50%,-50%); }
-    .pitch .box-top, .pitch .box-bottom { position:absolute; left:50%; width: 240px; height: 100px; border: 2px solid rgba(212, 175, 55, 0.3); transform: translateX(-50%); }
-    .pitch .box-top { top:16px; border-bottom: none; }
-    .pitch .box-bottom { bottom:16px; border-top: none; }
+
+    /* Outer field white rectangle */
+    .pitch::before {
+      content: '';
+      position: absolute;
+      inset: 14px;
+      border: 1.5px solid rgba(255,255,255,0.32);
+      border-radius: 3px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Edge vignette */
+    .pitch::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,0.28) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .pitch .half        { position:absolute; top:50%; left:14px; right:14px; height:0; border-top:1.5px solid rgba(255,255,255,0.32); z-index:1; }
+    .pitch .center-circle { position:absolute; top:50%; left:50%; width:128px; height:128px; border:1.5px solid rgba(255,255,255,0.32); border-radius:50%; transform:translate(-50%,-50%); z-index:1; }
+    .pitch .center-dot  { position:absolute; top:50%; left:50%; width:7px; height:7px; background:rgba(255,255,255,0.65); border-radius:50%; transform:translate(-50%,-50%); z-index:2; }
+    .pitch .box-top, .pitch .box-bottom { position:absolute; left:50%; width:240px; height:96px; border:1.5px solid rgba(255,255,255,0.32); transform:translateX(-50%); z-index:1; }
+    .pitch .box-top    { top:14px;    border-bottom:none; }
+    .pitch .box-bottom { bottom:14px; border-top:none; }
 
     .lineup-player {
       position: absolute;
       transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      text-align: center;
-      width: 120px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 5px;
+      text-align: center; width: 110px;
       z-index: 10;
-      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all .45s cubic-bezier(.4,0,.2,1);
     }
-    .lineup-player:hover { transform: translate(-50%, -55%) scale(1.1); z-index: 20; }
-    
+
+    .lineup-player:hover { transform: translate(-50%, -56%) scale(1.08); z-index: 20; }
+
     .lineup-token {
-      width: 72px; height: 72px;
+      width: 66px; height: 66px;
       border-radius: 50%;
       overflow: hidden;
-      border: 3px solid #fff;
+      border: 2.5px solid rgba(255,255,255,0.55);
       display: flex; align-items: center; justify-content: center;
       font-weight: 900; font-size: 22px; color: #fff;
       background-size: cover; background-position: center;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.75);
       background-color: #111;
     }
-    .lineup-token img {
-      width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
-    }
-    
-    /* ألوان الفرق في الملعب */
-    .token-black { background: linear-gradient(135deg, #111, #222); border-color: #555; }
-    .token-cocktail { background: linear-gradient(135deg, #1a1500, #332800); border-color: var(--gold); }
-    
-    .lineup-name {
-      background: rgba(0,0,0,0.9);
-      color: #e5e5e5;
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 800;
-      border: 1px solid #333;
-      white-space: nowrap;
-    }
-    .token-cocktail ~ .lineup-name { border-color: rgba(212, 175, 55, 0.5); color: var(--gold-light); }
-    
-    .lineup-pos { font-size: 11px; color: var(--text-muted); font-weight: 700; background: #000; padding: 2px 8px; border-radius: 6px; border: 1px solid #222; }
 
-    .share-box { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .lineup-token img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    .token-black {
+      background: radial-gradient(circle at 35% 35%, #2c2c2c, #080808);
+      border-color: rgba(255,255,255,0.28);
+    }
+
+    .token-cocktail {
+      background: radial-gradient(circle at 35% 35%, #3a2c00, #180f00);
+      border-color: var(--gold);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.75), 0 0 18px rgba(245,197,24,0.24);
+    }
+
+    .lineup-name {
+      background: rgba(0,0,0,0.82);
+      color: #e4e4e4;
+      padding: 3px 9px;
+      border-radius: 7px;
+      font-size: 12px; font-weight: 800;
+      border: 1px solid rgba(255,255,255,0.1);
+      white-space: nowrap;
+      backdrop-filter: blur(3px);
+    }
+
+    .token-cocktail ~ .lineup-name { border-color: rgba(245,197,24,0.38); color: var(--gold-light); }
+    .lineup-pos { font-size: 10px; color: rgba(255,255,255,0.45); font-weight: 700; background: rgba(0,0,0,0.55); padding: 2px 7px; border-radius: 5px; }
+
+    /* ─── SHARE BOX ───────────────────────────────── */
+    .share-box { display: grid; gap: 14px; }
+
     .preview-text {
       white-space: pre-wrap;
-      background: #050505;
-      border: 1px solid #333;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 18px;
-      line-height: 1.8;
-      font-family: monospace;
-      font-size: 14px;
-      color: var(--gold-light);
+      line-height: 1.85;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #9dbf7a;
     }
 
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { padding: 14px 12px; border-bottom: 1px solid #222; text-align: right; }
-    th { font-weight: 800; color: var(--text-muted); border-bottom: 2px solid #333; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-    .center { text-align: center; }
+    /* ─── TABLE ───────────────────────────────────── */
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { padding:13px 15px; border-bottom:1px solid rgba(255,255,255,0.04); text-align:right; }
+    th { font-weight:800; color:var(--text-muted); background:rgba(255,255,255,0.02); font-size:12px; letter-spacing:.3px; border-bottom:1px solid rgba(255,255,255,0.07); }
+    tr:hover td { background: rgba(255,255,255,0.025); }
 
-    /* تعديلات الأقسام للتناسب مع الفخامة */
-    #matchAdminCard { border-color: #333 !important; }
-    #matchAdminCard .row > div { background: #050505 !important; border: 1px solid #222; }
-    
-    .admin-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    
+    /* ─── SYNC INDICATOR ──────────────────────────── */
+    .sync {
+      font-size: 11px; font-weight: 700;
+      padding: 5px 13px; border-radius: 999px;
+      background: rgba(0,230,118,0.07);
+      border: 1px solid rgba(0,230,118,0.18);
+      display: flex; align-items: center; gap: 6px;
+      color: #52e89a;
+    }
+
+    .sync::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 7px #4ade80;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity:1; box-shadow:0 0 7px #4ade80; }
+      50%      { opacity:.5; box-shadow:0 0 3px #4ade80; }
+    }
+
+    /* ─── MISC ────────────────────────────────────── */
     .champion {
       text-align: center;
-      background: linear-gradient(135deg, #1a1500, #0a0800);
+      background: linear-gradient(135deg, rgba(24,18,0,0.96), rgba(8,6,0,0.97)) !important;
       color: var(--gold);
-      border: 1px solid var(--gold);
-      box-shadow: 0 20px 50px rgba(212, 175, 55, 0.1);
-      padding: 40px 20px;
+      border: 1px solid rgba(245,197,24,0.25) !important;
+      box-shadow: 0 20px 60px rgba(245,197,24,0.06), inset 0 1px 0 rgba(245,197,24,0.08);
+      padding: 50px 20px !important;
     }
-    
-    .sync { font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 999px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); display: flex; align-items: center; gap: 6px; color: #4ade80; }
-    .sync::before { content: ''; display: block; width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80; }
 
     #installAppBtn {
       display: none;
-      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      background: linear-gradient(135deg, var(--gold-dark), var(--gold));
       color: #000;
       border: none;
-      box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
     }
 
-    .login-grid { display: flex; justify-content: center; margin-bottom: 20px; }
+    .login-grid { display: flex; justify-content: center; margin-bottom: 18px; }
     .login-grid .card { width: 100%; max-width: 600px; }
-    
     .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
     .code-generator-wrapper { display: flex; gap: 8px; align-items: stretch; flex: 1; }
+    .admin-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    #matchAdminCard { border-color: rgba(255,255,255,0.08) !important; }
 
-    @media (max-width: 900px) {
-      .pitch { height: 600px; }
-      .formation-grid { grid-template-columns: 1fr; }
+    /* ─── FOOTER ──────────────────────────────────── */
+    .site-footer {
+      text-align: center;
+      margin-top: 50px;
+      padding-bottom: 10px;
     }
+
+    .footer-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,197,24,0.35), transparent);
+      margin-bottom: 28px;
+    }
+
+    .footer-trophy {
+      font-size: 26px;
+      filter: drop-shadow(0 0 12px rgba(245,197,24,0.4));
+      margin-bottom: 6px;
+    }
+
+    .footer-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+
+    .footer-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* ─── PLAYER REMINDER MODAL ─────────────────── */
+    .player-reminder-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .player-reminder-box {
+      width: min(96vw, 460px);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: linear-gradient(165deg, rgba(20, 20, 28, 0.98), rgba(10, 10, 14, 0.98));
+      box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.28s ease;
+    }
+
+    .player-reminder-box::before {
+      content: "";
+      position: absolute;
+      top: -140px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      height: 260px;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.28;
+      filter: blur(8px);
+    }
+
+    .player-reminder-box.team-a::before {
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 68%);
+    }
+
+    .player-reminder-box.team-b::before {
+      background: radial-gradient(circle, rgba(245, 197, 24, 0.28) 0%, transparent 68%);
+    }
+
+    .player-reminder-close {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #bbb;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .player-reminder-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .player-reminder-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      font-size: 22px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .player-reminder-title {
+      font-size: 19px;
+      font-weight: 900;
+      margin: 0;
+      color: #fff;
+      line-height: 1.35;
+    }
+
+    .player-reminder-lines {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .player-reminder-line {
+      font-size: 14px;
+      color: #d7dbe2;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 9px 10px;
+    }
+
+    .player-reminder-line strong {
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .player-reminder-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     @media (max-width: 700px) {
-      .title-xl { font-size: 26px; }
-      .wrap { padding: 12px; }
-      .pitch { height: 520px; }
-      .lineup-player { width: 90px; }
-      .lineup-token { width: 60px; height: 60px; font-size: 18px; }
-      .lineup-name { font-size: 11px; padding: 4px 8px; }
+      .player-reminder-box {
+        padding: 16px;
+      }
+      .player-reminder-title {
+        font-size: 17px;
+      }
+      .player-reminder-line {
+        font-size: 13px;
+      }
+    }
+
+    /* ─── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 900px) {
+      .pitch { height: 580px; }
+      .formation-grid { grid-template-columns: 1fr; }
+      .title-xl { font-size: 32px; }
+      .hero-emblem { font-size: 48px; }
+    }
+
+    @media (max-width: 700px) {
+      .title-xl { font-size: 24px; }
+      .wrap  { padding: 10px; }
+      .card  { padding: 16px; border-radius: 16px; }
+      .pitch { height: 480px; }
+      .lineup-player { width: 82px; }
+      .lineup-token  { width: 56px; height: 56px; font-size: 16px; }
+      .lineup-name   { font-size: 10px; padding: 2px 7px; }
       .stats { grid-template-columns: 1fr 1fr; }
+      h2 { font-size: 17px; }
+      .hero-emblem { font-size: 40px; }
+      .tabs { padding: 3px; }
+      .tabs .chip { padding: 7px 12px; font-size: 13px; }
     }
   </style>
 </head>
@@ -352,24 +812,20 @@
 <div class="wrap">
   <!-- رأس الصفحة -->
   <div class="card hero">
-    <!-- زر دخول الإدارة الصغير في الزاوية اليسرى -->
-    <button id="openAdminModalBtn" style="position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.5); border: 1px solid var(--gold); border-radius: 12px; width: 44px; height: 44px; font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.3s; z-index: 100;" title="دخول الإدارة" onmouseover="this.style.background='var(--gold)'; this.style.color='#000';" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.color='inherit';">⚙️</button>
-
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; padding-top: 10px;">
-      <div>
-        <div class="title-xl">🏆 دوري الحداد الممتاز 🏆</div>
-        <div class="sub" id="seasonInfo" style="margin-top: 5px;"></div>
-        <!-- تفاصيل المباراة القادمة ستظهر هنا للمستخدمين -->
-        <div id="matchDetailsDisplay" class="small hidden" style="margin-top: 10px; color: var(--gold-light); font-weight: 700; background: rgba(212,175,55,0.1); padding: 6px 16px; border-radius: 12px; border: 1px solid rgba(212,175,55,0.3); display: inline-block;"></div>
-      </div>
-      <div class="row" style="justify-content: center; width: 100%;">
-        <button id="installAppBtn" class="chip" style="font-weight: 900;">📲 تثبيت التطبيق</button>
-        <div class="tabs" style="justify-content: center;">
+    <button id="openAdminModalBtn" class="admin-gear-btn" title="دخول الإدارة">⚙️</button>
+    <div class="hero-inner">
+      <span class="hero-emblem">🏆</span>
+      <div class="title-xl">دوري الحداد الممتاز</div>
+      <div class="sub" id="seasonInfo"></div>
+      <div id="matchDetailsDisplay" class="match-badge hidden"></div>
+      <div class="hero-nav">
+        <button id="installAppBtn" class="chip" style="font-weight:900;">📲 تثبيت التطبيق</button>
+        <div class="tabs">
           <button class="chip active" data-tab="league">الملعب والتشكيلة</button>
           <button class="chip" data-tab="matches">المباريات</button>
-          <button class="chip" data-tab="stats">الإحصائيات</button>
+          <button class="chip" data-tab="stats">الترتيب</button>
           <button class="chip" data-tab="archive">الأرشيف</button>
-          <button class="chip hidden" id="adminTabBtn" data-tab="admin" style="border-color: var(--gold); color: var(--gold);">⚙️ الإدارة</button>
+          <button class="chip hidden" id="adminTabBtn" data-tab="admin" style="border-color:var(--gold);color:var(--gold);">⚙️ الإدارة</button>
         </div>
       </div>
     </div>
@@ -458,16 +914,16 @@
       <h3 style="color: var(--gold);">📝 تسجيل نتيجة ومخالفات المباراة</h3>
       <div class="row" style="gap: 24px; margin-bottom: 20px;">
         <div style="flex: 1; padding: 16px; border-radius: 16px;">
-          <h3 style="border-bottom: 1px solid #333; padding-bottom: 8px; color: #fff">⚫ الأسود</h3>
+          <h3 style="border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 8px; color: #fff">⚫ الأسود</h3>
           <div id="penaltiesA"></div>
         </div>
         <div style="flex: 1; padding: 16px; border-radius: 16px;">
-          <h3 style="border-bottom: 1px solid #333; padding-bottom: 8px; color: var(--gold)">👑 الكوكتيل</h3>
+          <h3 style="border-bottom: 1px solid rgba(245,197,24,0.2); padding-bottom: 8px; color: var(--gold)">👑 الكوكتيل</h3>
           <div id="penaltiesB"></div>
         </div>
       </div>
       
-      <div class="row" style="align-items: center; background: #050505; padding: 16px; border-radius: 16px; border: 1px solid #222;">
+      <div class="row" style="align-items: center; background: rgba(255,255,255,0.03); padding: 16px; border-radius: 16px; border: 1px solid var(--border);">
         <div style="font-weight: 800; font-size: 18px; color: var(--text-muted)">النتيجة:</div>
         <input id="scoreA" placeholder="الأسود" inputmode="numeric" style="width: 100px; text-align: center; font-size: 20px; font-weight: 900; color: #fff;" />
         <span style="font-size: 24px; font-weight: 900; color: #555">-</span>
@@ -494,7 +950,7 @@
   <section id="tab-matches" class="hidden">
     <div class="card">
       <h2 style="color: var(--gold)">📅 سجل مباريات الموسم الحالي</h2>
-      <div style="overflow:auto; border-radius: 12px; border: 1px solid #222;">
+      <div style="overflow:auto; border-radius: 12px; border: 1px solid var(--border);">
         <table>
           <thead><tr><th>الجولة</th><th>الفريق الأسود</th><th>الفريق الكوكتيل</th><th class="center">النتيجة</th><th>المخالفات</th><th>إجراء</th></tr></thead>
           <tbody id="matchesTableBody"></tbody>
@@ -518,7 +974,7 @@
     </div>
     <div class="card">
       <h2 style="color: var(--gold)">📊 جدول الترتيب العام</h2>
-      <div style="overflow:auto; border-radius: 12px; border: 1px solid #222;">
+      <div style="overflow:auto; border-radius: 12px; border: 1px solid var(--border);">
         <table>
           <thead><tr><th>المركز</th><th>اللاعب</th><th class="center">مباريات</th><th class="center" style="color:var(--success)">فوز</th><th class="center" style="color:var(--danger)">خسارة</th><th class="center" style="color:var(--gold)">النقاط</th></tr></thead>
           <tbody id="statsTableBody"></tbody>
@@ -601,11 +1057,12 @@
   </div>
 
   <!-- توقيع المصمم -->
-  <div style="text-align: center; margin-top: 40px; color: var(--gold); font-weight: 800; letter-spacing: 1px; text-shadow: 0 0 10px rgba(212,175,55,0.4);">
-    <div style="font-size: 14px; opacity: 0.9;">حقوق الطبع محفوظة &copy;</div>
-    <div style="font-size: 20px; font-weight: 900; margin: 6px 0;">🏆 دوري الحداد الممتاز 🏆</div>
-    <div style="font-size: 12px; color: var(--gold-light); opacity: 0.8;">حسن مصطفى الحداد - 2026</div>
-  </div>
+  <footer class="site-footer">
+    <div class="footer-divider"></div>
+    <div class="footer-trophy">🏆</div>
+    <div class="footer-title">دوري الحداد الممتاز</div>
+    <div class="footer-meta">حقوق الطبع محفوظة &copy; حسن مصطفى الحداد — 2026</div>
+  </footer>
 </div>
 
 <!-- نافذة دخول الإدارة (Modal) -->
@@ -623,6 +1080,27 @@
     <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top:12px;">
       <div class="small" id="adminLoginStatus" style="color: #fff; text-align:center;">الأدمن غير مسجل دخول</div>
       <button class="btn-danger hidden" id="adminLogoutModalBtn" style="width:100%">تسجيل خروج الأدمن</button>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة تذكير اللاعب بعد اعتماد التشكيلة -->
+<div id="playerReminderModal" class="player-reminder-modal hidden">
+  <div id="playerReminderBox" class="player-reminder-box team-a">
+    <button id="playerReminderCloseBtn" class="player-reminder-close" aria-label="إغلاق">×</button>
+    <div class="player-reminder-head">
+      <div id="playerReminderBadge" class="player-reminder-badge">⚫</div>
+      <h3 id="playerReminderTitle" class="player-reminder-title">تذكير المباراة</h3>
+    </div>
+    <div class="player-reminder-lines">
+      <div id="playerReminderTeam" class="player-reminder-line"></div>
+      <div id="playerReminderTime" class="player-reminder-line"></div>
+      <div id="playerReminderDress" class="player-reminder-line"></div>
+      <div id="playerReminderPayment" class="player-reminder-line"></div>
+    </div>
+    <div class="player-reminder-actions">
+      <button id="playerReminderLaterBtn" class="chip">لاحقاً</button>
+      <button id="playerReminderOkBtn" class="btn-green">تم</button>
     </div>
   </div>
 </div>
@@ -698,6 +1176,12 @@ function normalizeCode(value){
 function sanitizeUrl(value){
   const url = String(value ?? "").trim();
   if(!url) return "";
+
+  // Allow only image data URLs produced by local admin upload.
+  if(/^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/=]+$/i.test(url)){
+    return url;
+  }
+
   try {
     const parsed = new URL(url);
     return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
@@ -776,6 +1260,80 @@ let adminCodes = {};
 let codesListener = null;
 let playerQueue = {};
 let sessionListener = null;
+let lastAutoDrawRegistrationSignature = "";
+let autoDrawInProgress = false;
+
+function getPlayerReminderContext(){
+  if(!currentPlayerName || adminMode) return null;
+  const inTeamA = state.teams.A.some(p => p.name === currentPlayerName);
+  const inTeamB = state.teams.B.some(p => p.name === currentPlayerName);
+  if(!inTeamA && !inTeamB) return null;
+
+  const teamCode = inTeamA ? "A" : "B";
+  const teamName = inTeamA ? "الفريق الأسود" : "فريق الكوكتيل";
+  const teamBadge = inTeamA ? "⚫" : "👑";
+  const dressColor = inTeamA ? "الأسود" : "الكوكتيل (اللون الفاتح)";
+  const dateText = state.matchInfo?.date || "";
+  const timeText = state.matchInfo?.time || "";
+  const locationText = state.matchInfo?.location || "";
+  const reminderKey = `playerReminderSeen_${state.seasonNumber}_${state.round}_${currentPlayerName}_${teamCode}`;
+
+  return { teamCode, teamName, teamBadge, dressColor, dateText, timeText, locationText, reminderKey };
+}
+
+function markPlayerReminderSeen(reminderKey){
+  try { localStorage.setItem(reminderKey, "1"); }
+  catch(e) { console.warn("تعذر حفظ حالة تذكير اللاعب", e); }
+}
+
+function closePlayerReminder(markSeen = true){
+  const modal = document.getElementById("playerReminderModal");
+  if(!modal) return;
+  const reminderKey = modal.dataset.reminderKey || "";
+  if(markSeen && reminderKey) markPlayerReminderSeen(reminderKey);
+  modal.classList.add("hidden");
+}
+
+function showPlayerReminderIfNeeded(){
+  const modal = document.getElementById("playerReminderModal");
+  const box = document.getElementById("playerReminderBox");
+  if(!modal || !box) return;
+
+  const ctx = getPlayerReminderContext();
+  if(!ctx) {
+    modal.classList.add("hidden");
+    return;
+  }
+
+  let alreadySeen = false;
+  try { alreadySeen = localStorage.getItem(ctx.reminderKey) === "1"; }
+  catch(e) { alreadySeen = false; }
+  if(alreadySeen) return;
+
+  document.getElementById("playerReminderBadge").textContent = ctx.teamBadge;
+  document.getElementById("playerReminderTitle").textContent = `لا تنسى المباراة يا ${currentPlayerName}`;
+  document.getElementById("playerReminderTeam").innerHTML = `تم اختيارك في <strong>${escapeHTML(ctx.teamName)}</strong>.`;
+
+  const scheduleParts = [];
+  if(ctx.dateText) scheduleParts.push(`<strong>${escapeHTML(ctx.dateText)}</strong>`);
+  if(ctx.timeText) scheduleParts.push(`<strong>${escapeHTML(ctx.timeText)}</strong>`);
+  if(ctx.locationText) scheduleParts.push(`<strong>${escapeHTML(ctx.locationText)}</strong>`);
+
+  const missingScheduleFields = Number(!ctx.dateText) + Number(!ctx.timeText) + Number(!ctx.locationText);
+  if(scheduleParts.length){
+    document.getElementById("playerReminderTime").innerHTML = `موعد اللعب: ${scheduleParts.join(" - ")}.`;
+  } else {
+    document.getElementById("playerReminderTime").innerHTML = `تفاصيل موعد اللعب سيعلن عنها لاحقاً.`;
+  }
+
+  document.getElementById("playerReminderDress").innerHTML = `لبسك اليوم: <strong>${escapeHTML(ctx.dressColor)}</strong>.`;
+  document.getElementById("playerReminderPayment").innerHTML = `لا تنسى تدفع القطية ومض على <strong>95000659</strong>.`;
+
+  box.classList.remove("team-a", "team-b");
+  box.classList.add(ctx.teamCode === "A" ? "team-a" : "team-b");
+  modal.dataset.reminderKey = ctx.reminderKey;
+  modal.classList.remove("hidden");
+}
 
 // دوال المساعدة للصور والأسماء
 function initials(name){ return (name||"").split(" ").slice(0,2).map(x=>x[0]||"").join(""); }
@@ -850,13 +1408,46 @@ function syncDerivedRegistrationState(){
 }
 
 function listenPlayerQueue(){
-  db.ref(PLAYER_QUEUE_PATH).on("value", snapshot => {
+  db.ref(PLAYER_QUEUE_PATH).on("value", async snapshot => {
     playerQueue = snapshot.val() || {};
     syncDerivedRegistrationState();
+    await autoDrawFromQueueIfNeeded();
     renderAll();
   }, err => {
     console.error(err);
   });
+}
+
+async function autoDrawFromQueueIfNeeded(){
+  if(!adminMode || suppressRemote || autoDrawInProgress) return;
+
+  const registrations = Array.isArray(state.registrations) ? state.registrations : [];
+  const registrationSignature = registrations.join("|");
+
+  autoDrawInProgress = true;
+  try {
+    if(registrations.length === 10){
+      if(registrationSignature === lastAutoDrawRegistrationSignature) return;
+
+      performDrawLogic();
+      lastAutoDrawRegistrationSignature = registrationSignature;
+      await writeState();
+
+      setTimeout(() => {
+        alert("✅ اكتمل العدد الأساسي (10 لاعبين) وتم إجراء القرعة تلقائياً!");
+        document.getElementById("pitchBlack").scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 250);
+      return;
+    }
+
+    lastAutoDrawRegistrationSignature = "";
+    if(state.teams.A.length || state.teams.B.length){
+      state.teams = {A: [], B: []};
+      await writeState();
+    }
+  } finally {
+    autoDrawInProgress = false;
+  }
 }
 
 function attachPlayerSessionListener(uid){
@@ -993,10 +1584,26 @@ async function playerLogin(){
   const code = normalizeCode(document.getElementById("playerCodeInput").value);
 
   if(!name || !code) return alert("اختر اسمك وأدخل الكود السري.");
-  if(!currentUserUid) return alert("جاري تجهيز جلسة اللاعب، حاول مرة ثانية بعد لحظات.");
+
+  let sessionUid = currentUserUid || auth.currentUser?.uid || null;
+
+  // Avoid failing on first click while anonymous auth is still initializing.
+  if(!sessionUid && !adminMode){
+    try {
+      const credential = await auth.signInAnonymously();
+      sessionUid = credential?.user?.uid || auth.currentUser?.uid || null;
+      if(sessionUid && sessionUid !== currentUserUid) attachPlayerSessionListener(sessionUid);
+    } catch (error) {
+      console.error(error);
+      alert("تعذر تجهيز جلسة اللاعب حالياً. حاول مرة ثانية بعد لحظات.");
+      return;
+    }
+  }
+
+  if(!sessionUid) return alert("جاري تجهيز جلسة اللاعب، حاول مرة ثانية بعد لحظات.");
 
   try {
-    await db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).set({
+    await db.ref(`${PLAYER_SESSION_PATH}/${sessionUid}`).set({
       playerName: name,
       code,
       updatedAt: firebase.database.ServerValue.TIMESTAMP
@@ -1049,6 +1656,8 @@ async function adminLogin(){
       adminCodes = snap.val() || {};
       if(activeTab === "admin") renderPlayersAdminList();
     });
+
+    await autoDrawFromQueueIfNeeded();
     
     renderAll(); 
   }catch(e){ 
@@ -1186,25 +1795,12 @@ window.unregisterSelf = unregisterSelf;
 async function adminRegister(name){
   if(!adminMode) return;
   if(!state.registrationOpen) return alert("التسجيل مقفل حالياً من قبل الإدارة.");
-  const wasLessThan10 = state.registrations.length < 10;
   await upsertPlayerQueueEntry(name);
-
-  if (wasLessThan10 && state.registrations.length === 10) {
-    setTimeout(() => {
-      alert("✅ اكتمل العدد الأساسي (10 لاعبين) وتم إجراء القرعة تلقائياً!");
-      document.getElementById("pitchBlack").scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
-  }
 }
 
 async function adminUnregister(name){
   if(!adminMode) return;
-  const was10 = state.registrations.length === 10;
   await db.ref(`${PLAYER_QUEUE_PATH}/${name}`).remove();
-
-  if (was10 && state.registrations.length === 10) {
-    setTimeout(() => alert("✅ تم تصعيد لاعب من الاحتياط وإعادة القرعة تلقائياً لاكتمال العدد!"), 300);
-  }
 }
 window.adminRegister = adminRegister;
 window.adminUnregister = adminUnregister;
@@ -1474,6 +2070,10 @@ function renderPlayersAdminList(){
         
         <div style="flex:1;">
            <input id="img-${idx}" value="${escapeHTML(p.image||'')}" placeholder="رابط الصورة (URL)" style="width:100%; font-size:12px; padding:8px;" onchange="savePlayerImage(${idx})">
+            <div class="small" style="margin-top:6px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+             <input id="img-file-${idx}" type="file" accept="image/*" style="max-width:220px;">
+             <button class="btn-blue small" onclick="uploadPlayerImageFile(${idx})">رفع صورة من الجهاز</button>
+            </div>
         </div>
 
         <div class="admin-tools">
@@ -1502,6 +2102,65 @@ async function savePlayerImage(index){
   renderAll(); 
 }
 window.savePlayerImage=savePlayerImage;
+
+function fileToResizedDataUrl(file, maxSize = 640, quality = 0.82){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if(!ctx) {
+          reject(new Error("تعذر تجهيز الصورة"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("ملف الصورة غير صالح"));
+      img.src = String(reader.result || "");
+    };
+    reader.onerror = () => reject(new Error("فشل قراءة ملف الصورة"));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadPlayerImageFile(index){
+  if(!adminMode) return;
+
+  const input = document.getElementById(`img-file-${index}`);
+  const file = input?.files && input.files[0];
+  if(!file) return alert("اختر صورة أولاً.");
+  if(!file.type.startsWith("image/")) return alert("الملف المختار ليس صورة.");
+
+  try {
+    const dataUrl = await fileToResizedDataUrl(file);
+    state.players[index].image = sanitizeUrl(dataUrl);
+    document.getElementById(`img-${index}`).value = state.players[index].image;
+
+    state.teams.A = state.teams.A.map(s => s.name === state.players[index].name ? {...s, image: state.players[index].image} : s);
+    state.teams.B = state.teams.B.map(s => s.name === state.players[index].name ? {...s, image: state.players[index].image} : s);
+
+    await writeState();
+    alert("تم رفع صورة اللاعب بنجاح.");
+    renderAll();
+  } catch (error) {
+    console.error(error);
+    alert("تعذر رفع الصورة حالياً. حاول بصورة أخرى.");
+  } finally {
+    if(input) input.value = "";
+  }
+}
+window.uploadPlayerImageFile = uploadPlayerImageFile;
 
 // توليد كود جديد للاعب موجود
 async function regenerateCode(playerName) {
@@ -1708,6 +2367,7 @@ function renderAll(){
   renderAdminTab(); 
   if(activeTab === "admin" && adminMode) renderPlayersAdminList();
   renderLoginStates(); 
+  showPlayerReminderIfNeeded();
 }
 
 // أزرار النسخ والمشاركة
@@ -1749,6 +2409,14 @@ document.getElementById('openAdminModalBtn').addEventListener('click', () => {
 });
 document.getElementById('closeAdminModalBtn').addEventListener('click', () => {
   document.getElementById('adminModal').classList.add('hidden');
+});
+
+document.getElementById("playerReminderCloseBtn").addEventListener("click", () => closePlayerReminder(true));
+document.getElementById("playerReminderLaterBtn").addEventListener("click", () => closePlayerReminder(false));
+document.getElementById("playerReminderOkBtn").addEventListener("click", () => closePlayerReminder(true));
+
+document.getElementById("playerReminderModal").addEventListener("click", (event) => {
+  if(event.target && event.target.id === "playerReminderModal") closePlayerReminder(true);
 });
 
 // ==========================================
