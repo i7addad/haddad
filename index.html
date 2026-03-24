@@ -2152,7 +2152,12 @@ async function unregisterSelf(){
     await db.ref(`${PLAYER_QUEUE_PATH}/${currentPlayerName}`).remove();
   } catch (error) {
     console.error(error);
-    alert("تعذر إلغاء الحضور حالياً.");
+    const msg = String(error?.message || error || "").toLowerCase();
+    if(msg.includes("permission_denied")) {
+      alert("تعذر إلغاء الحضور: صلاحيات Firebase تمنع حذف التسجيل حالياً.");
+    } else {
+      alert("تعذر إلغاء الحضور حالياً.");
+    }
   }
 }
 window.registerSelf = registerSelf;
@@ -2166,7 +2171,17 @@ async function adminRegister(name){
 
 async function adminUnregister(name){
   if(!adminMode) return;
-  await db.ref(`${PLAYER_QUEUE_PATH}/${name}`).remove();
+  try {
+    await db.ref(`${PLAYER_QUEUE_PATH}/${name}`).remove();
+  } catch (error) {
+    console.error(error);
+    const msg = String(error?.message || error || "").toLowerCase();
+    if(msg.includes("permission_denied")) {
+      alert("لا يمكن للإدارة إلغاء تسجيل اللاعب حالياً بسبب قواعد الصلاحيات في Firebase.");
+    } else {
+      alert("تعذر إلغاء تسجيل اللاعب حالياً.");
+    }
+  }
 }
 window.adminRegister = adminRegister;
 window.adminUnregister = adminUnregister;
