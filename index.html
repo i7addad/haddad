@@ -2507,7 +2507,11 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
   document.getElementById("scoreA").value=""; document.getElementById("scoreB").value=""; 
   lateA=[]; lateB=[]; dressA=[]; dressB=[]; 
   
-  await db.ref(PLAYER_QUEUE_PATH).remove();
+  try {
+    await db.ref(PLAYER_QUEUE_PATH).remove();
+  } catch(e) {
+    console.warn("تعذر حذف قائمة الانتظار، لكن سيتم استمرار حفظ المباراة:", e?.message || e);
+  }
   playerQueue = {};
   syncDerivedRegistrationState();
   await writeState(); 
