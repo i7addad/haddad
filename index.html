@@ -970,7 +970,7 @@
       <div class="row" style="justify-content:space-between;align-items:center; margin-bottom: 16px;">
         <div>
           <h3 style="color: var(--gold)">🎮 قائمة تسجيل الحضور</h3>
-          <div class="small">أول 10 لاعبين أساسي، والبقية احتياط بالترتيب.</div>
+          <div class="small">أول ${(state.matchSize||5)*2} لاعبًا أساسي، والبقية احتياط بالترتيب.</div>
         </div>
         <!-- تم إضافة id وإخفاء الأزرار مبدئياً عن المستخدمين العاديين -->
         <div class="actions hidden" id="registrationAdminActions">
@@ -1004,6 +1004,19 @@
           <div class="box-top"></div><div class="box-bottom"></div>
         </div>
       </div>
+    </div>
+
+    <!-- تعديل التشكيلة يدوياً — للأدمن فقط —————————————————— -->
+    <div class="card hidden" id="manualLineupCard" style="margin-top:16px; border-top:2px solid var(--gold) !important;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+        <div>
+          <h3 style="color:var(--gold)">✏️ تعديل التشكيلة يدوياً</h3>
+          <div class="small">اضغط زر النقل لتبديل لاعب بين الفريقين، أو أضف لاعباً متاحاً.</div>
+        </div>
+        <button class="btn-green" id="saveManualLineupBtn">حفظ التشكيلة ✅</button>
+      </div>
+      <div id="manualLineupContent" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;"></div>
+      <div id="manualReserveSection"></div>
     </div>
 
     <!-- إدارة المباراة بعد القرعة -->
@@ -1123,7 +1136,15 @@
         <input id="infoLocation" placeholder="المكان (مثال: ملعب الشعب)" />
         <input id="infoGroupLink" placeholder="رابط قروب الواتساب (https://chat.whatsapp.com/...)" />
       </div>
-      <button class="btn-green" id="saveInfoBtn" style="width: 100%; font-size: 16px; margin-top: 8px;">حفظ تفاصيل المباراة</button>
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+        <div class="small" style="margin-bottom:8px; color:var(--text-muted)">عدد اللاعبين في كل فريق (يحدد عند الإعلان عن المباراة):</div>
+        <div class="chips" id="matchSizeButtons">
+          <button class="chip active" data-size="5" onclick="setMatchSize(5)">5 × 5 (افتراضي)</button>
+          <button class="chip" data-size="6" onclick="setMatchSize(6)">6 × 6</button>
+          <button class="chip" data-size="7" onclick="setMatchSize(7)">7 × 7</button>
+        </div>
+      </div>
+      <button class="btn-green" id="saveInfoBtn" style="width: 100%; font-size: 16px; margin-top: 12px;">حفظ تفاصيل المباراة وعدد اللاعبين</button>
     </div>
     
     <div class="card">
@@ -1272,7 +1293,8 @@ const defaultState = {
   reserves:[], 
   paidPlayers:[], 
   matchInfo: { date: "الجمعة", time: "11:00 مساءً", location: "", groupLink: "" },
-  registrationOpen:true 
+  registrationOpen:true,
+  matchSize: 5
 };
 
 const ALLOWED_POSITIONS = ["🧤", "🛡️", "⚽", "🔥"];
@@ -1374,6 +1396,8 @@ function normalizeState(data){
   s.round = Number.isFinite(Number(s.round)) ? Number(s.round) : 1;
   s.seasonNumber = Number.isFinite(Number(s.seasonNumber)) ? Number(s.seasonNumber) : 1;
   s.registrationOpen = typeof s.registrationOpen === "boolean" ? s.registrationOpen : true;
+  const validSizes = [5, 6, 7];
+  s.matchSize = validSizes.includes(Number(s.matchSize)) ? Number(s.matchSize) : 5;
   return s;
 }
 
@@ -1839,8 +1863,9 @@ function syncDerivedRegistrationState(){
       return first.name.localeCompare(second.name, "ar");
     });
 
-  state.registrations = queueEntries.slice(0, 10).map(entry => entry.name);
-  state.reserves = queueEntries.slice(10).map(entry => entry.name);
+  const matchSlotCount = (state.matchSize || 5) * 2;
+  state.registrations = queueEntries.slice(0, matchSlotCount).map(entry => entry.name);
+  state.reserves = queueEntries.slice(matchSlotCount).map(entry => entry.name);
   state.paidPlayers = queueEntries.filter(entry => entry.paid).map(entry => entry.name);
 }
 
@@ -1863,7 +1888,7 @@ async function autoDrawFromQueueIfNeeded(){
 
   autoDrawInProgress = true;
   try {
-    if(registrations.length === 10){
+    if(registrations.length === (state.matchSize || 5) * 2){
       if(registrationSignature === lastAutoDrawRegistrationSignature) return;
 
       performDrawLogic();
@@ -1871,7 +1896,7 @@ async function autoDrawFromQueueIfNeeded(){
       await writeState();
 
       setTimeout(() => {
-        alert("✅ اكتمل العدد الأساسي (10 لاعبين) وتم إجراء القرعة تلقائياً!");
+        alert("✅ اكتمل العدد الأساسي (" + ((state.matchSize || 5) * 2) + " لاعباً) وتم إجراء القرعة تلقائياً!");
         document.getElementById("pitchBlack").scrollIntoView({ behavior: "smooth", block: "center" });
       }, 250);
       return;
@@ -1952,20 +1977,34 @@ document.querySelectorAll("[data-tab]").forEach(btn => btn.addEventListener("cli
 
 // توزيع التشكيلة في الملعب
 function formationSlots(team){ 
-  const gk = team.filter(p=>p.pos==="🧤");
+  const size = team.length;
+  const gk  = team.filter(p=>p.pos==="🧤");
   const def = team.filter(p=>p.pos==="🛡️");
   const mid = team.filter(p=>p.pos==="⚽");
   const att = team.filter(p=>p.pos==="🔥"); 
   const slots=[]; 
   const use=(arr,coords,label)=>arr.forEach((p,i)=>coords[i]&&slots.push({...coords[i],player:p,label})); 
   
-  use(gk,[{x:50,y:87}],"حارس"); 
-  use(def,[{x:25,y:68},{x:75,y:68},{x:50,y:72}],"دفاع"); 
-  use(mid,[{x:20,y:48},{x:50,y:45},{x:80,y:48},{x:35,y:55},{x:65,y:55}],"وسط"); 
-  use(att,[{x:50,y:18},{x:30,y:24},{x:70,y:24}],"هجوم"); 
+  if(size <= 5){
+    use(gk, [{x:50,y:87}],"حارس"); 
+    use(def,[{x:25,y:68},{x:75,y:68},{x:50,y:72}],"دفاع"); 
+    use(mid,[{x:20,y:48},{x:50,y:45},{x:80,y:48},{x:35,y:55},{x:65,y:55}],"وسط"); 
+    use(att,[{x:50,y:18},{x:30,y:24},{x:70,y:24}],"هجوم"); 
+  } else if(size === 6){
+    use(gk, [{x:50,y:88}],"حارس"); 
+    use(def,[{x:22,y:71},{x:78,y:71},{x:50,y:75}],"دفاع"); 
+    use(mid,[{x:18,y:52},{x:50,y:47},{x:82,y:52},{x:33,y:59},{x:67,y:59}],"وسط"); 
+    use(att,[{x:34,y:21},{x:66,y:21},{x:50,y:13}],"هجوم"); 
+  } else {
+    // 7 players
+    use(gk, [{x:50,y:88}],"حارس"); 
+    use(def,[{x:18,y:71},{x:50,y:75},{x:82,y:71},{x:34,y:78},{x:66,y:78}],"دفاع"); 
+    use(mid,[{x:15,y:55},{x:38,y:49},{x:62,y:49},{x:85,y:55},{x:50,y:59},{x:27,y:62},{x:73,y:62}],"وسط"); 
+    use(att,[{x:28,y:21},{x:50,y:13},{x:72,y:21},{x:39,y:27},{x:61,y:27}],"هجوم"); 
+  }
   
-  team.filter(p=>!slots.find(s=>s.player.name===p.name)).forEach((p,i)=>slots.push({x:15+(i*18),y:60,player:p,label:"لاعب"})); 
-  return slots.slice(0,5); 
+  team.filter(p=>!slots.find(s=>s.player.name===p.name)).forEach((p,i)=>slots.push({x:15+(i*12),y:62,player:p,label:"لاعب"})); 
+  return slots.slice(0, size); 
 }
 
 function lineupToken(player, teamClass){ 
@@ -2164,8 +2203,18 @@ document.getElementById("saveInfoBtn").addEventListener("click", async () => {
     location: document.getElementById("infoLocation").value,
     groupLink: document.getElementById("infoGroupLink").value
   });
+  // حفظ حجم الفريق المحدد
+  const selectedSizeBtn = document.querySelector("#matchSizeButtons [data-size].active");
+  const newSize = selectedSizeBtn ? Number(selectedSizeBtn.dataset.size) : state.matchSize;
+  if([5,6,7].includes(newSize) && newSize !== state.matchSize){
+    state.matchSize = newSize;
+    // إعادة ضبط التشكيلة الحالية عند تغيير العدد
+    if(state.teams.A.length || state.teams.B.length){
+      state.teams = {A:[], B:[]};
+    }
+  }
   await writeState();
-  alert("تم حفظ تفاصيل المباراة بنجاح! ستظهر الآن لجميع اللاعبين.");
+  alert("تم حفظ تفاصيل المباراة وعدد اللاعبين بنجاح! ستظهر الآن لجميع اللاعبين.");
   renderAll();
 });
 
@@ -2228,13 +2277,13 @@ function renderRegistration(){
     grid.appendChild(btn); 
   }); 
   
-  document.getElementById("statSelected").textContent=`${state.registrations.length}/10`; 
+  document.getElementById("statSelected").textContent=`${state.registrations.length}/${(state.matchSize||5)*2}`; 
   document.getElementById("statReserve").textContent=state.reserves.length; 
   
   const adminActions = document.getElementById("registrationAdminActions");
   if(adminActions) adminActions.classList.toggle("hidden", !adminMode);
   
-  document.getElementById("drawBtn").disabled=!adminMode || state.registrations.length!==10; 
+  document.getElementById("drawBtn").disabled=!adminMode || state.registrations.length!==(state.matchSize||5)*2; 
   document.getElementById("toggleRegistrationBtn").disabled=!adminMode; 
 }
 
@@ -2328,9 +2377,10 @@ function performDrawLogic() {
   const good = list.filter(p => p.rating < 90);
   const balanced = [...shuffle(excellent), ...shuffle(good)]; 
   
+  const teamSize = state.matchSize || 5;
   balanced.forEach(p => { 
-    if (A.length < 5 && A.length <= B.length) A.push(p); 
-    else if (B.length < 5) B.push(p); 
+    if (A.length < teamSize && A.length <= B.length) A.push(p); 
+    else if (B.length < teamSize) B.push(p); 
   }); 
   
   state.teams = {A, B}; 
@@ -2340,7 +2390,8 @@ function performDrawLogic() {
 // إجراء القرعة المزدوجة والمشاركة التلقائية (من قبل الإدارة)
 async function drawTeams(){ 
   if(!adminMode) return alert("القرعة صلاحية خاصة بالأدمن"); 
-  if(state.registrations.length<10) return alert("لا يمكن بدء القرعة، العدد لم يكتمل (10 لاعبين أساسيين)"); 
+  const neededPlayers = (state.matchSize || 5) * 2;
+  if(state.registrations.length < neededPlayers) return alert("لا يمكن بدء القرعة، العدد لم يكتمل (" + neededPlayers + " لاعبًا أساسيين)"); 
   
   performDrawLogic();
   await writeState(); 
@@ -3082,7 +3133,7 @@ function renderTopInfo(){
 function renderTeams(){ 
   renderPitch("pitchBlack", state.teams.A, "token-black"); 
   renderPitch("pitchCocktail", state.teams.B, "token-cocktail"); 
-  document.getElementById("matchAdminCard").classList.toggle("hidden",!(adminMode&&state.teams.A.length===5&&state.teams.B.length===5)); 
+  document.getElementById("matchAdminCard").classList.toggle("hidden",!(adminMode && state.teams.A.length > 0 && state.teams.B.length > 0)); 
   renderPenaltyBoxes(); 
   renderSharePreview(); 
 }
@@ -3096,6 +3147,10 @@ function renderAdminTab(){
      document.getElementById("infoLocation").value = state.matchInfo.location || "";
      document.getElementById("infoGroupLink").value = state.matchInfo.groupLink || "";
   }
+  // تحديث أزرار حجم الفريق
+  document.querySelectorAll("#matchSizeButtons [data-size]").forEach(btn => {
+    btn.classList.toggle("active", Number(btn.dataset.size) === (state.matchSize || 5));
+  });
 }
 
 function renderLoginStates() {
@@ -3131,11 +3186,126 @@ function renderLoginStates() {
   }
 }
 
+// ─── تعديل التشكيلة يدوياً ─────────────────────────────────────
+
+function setMatchSize(size){
+  document.querySelectorAll("#matchSizeButtons [data-size]").forEach(btn => {
+    btn.classList.toggle("active", Number(btn.dataset.size) === size);
+  });
+}
+window.setMatchSize = setMatchSize;
+
+function renderManualLineupEditor(){
+  const card = document.getElementById("manualLineupCard");
+  const content = document.getElementById("manualLineupContent");
+  const reserveSection = document.getElementById("manualReserveSection");
+  if(!card || !content || !reserveSection) return;
+
+  const hasTeams = state.teams.A.length > 0 || state.teams.B.length > 0;
+  card.classList.toggle("hidden", !adminMode || !hasTeams);
+  if(!adminMode || !hasTeams) return;
+
+  const renderTeamList = (team, teamLabel, labelColor, teamKey) => {
+    const rows = team.map(p => `
+      <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);padding:7px 10px;border-radius:10px;border:1px solid var(--border);">
+        <div style="flex:1;font-weight:700;color:#fff;font-size:14px;">${escapeHTML(p.name)}</div>
+        <div class="small" style="flex-shrink:0;">${escapeHTML(p.pos)}</div>
+        <button class="chip small" style="padding:4px 9px;flex-shrink:0;" onclick="movePlayerBetweenTeams('${escapeJSString(p.name)}','${teamKey}')">
+          ${teamKey==="A" ? "→ كوكتيل" : "← أسود"}
+        </button>
+        <button style="width:26px;height:26px;border-radius:7px;padding:0;font-size:14px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.22);color:#ff8080;flex-shrink:0;cursor:pointer;" onclick="removePlayerFromTeam('${escapeJSString(p.name)}','${teamKey}')" title="إزالة من الفريق">✕</button>
+      </div>
+    `).join("");
+    return `
+      <div>
+        <h3 style="color:${labelColor};margin-bottom:10px;font-size:15px;">${teamLabel} (${team.length})</h3>
+        <div style="display:flex;flex-direction:column;gap:7px;">${rows || '<div class="small" style="color:var(--text-muted);padding:8px;">فارغ</div>'}</div>
+      </div>`;
+  };
+
+  content.innerHTML =
+    renderTeamList(state.teams.A, "⚫ الفريق الأسود", "#fff", "A") +
+    renderTeamList(state.teams.B, "👑 فريق الكوكتيل", "var(--gold)", "B");
+
+  const inTeams = new Set([...state.teams.A.map(p=>p.name), ...state.teams.B.map(p=>p.name)]);
+  const regNames = new Set([...state.registrations, ...state.reserves]);
+  const available = state.players.filter(p => !inTeams.has(p.name) && regNames.has(p.name));
+  const allAvailable = available.length ? available : state.players.filter(p => !inTeams.has(p.name));
+
+  if(allAvailable.length){
+    reserveSection.innerHTML = `
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+        <h3 style="color:var(--text-muted);margin-bottom:10px;font-size:14px;">🪑 اللاعبون المتاحون للإضافة</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${allAvailable.map(p => `
+            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:6px 10px;">
+              <div style="font-weight:700;color:#aaa;font-size:13px;">${escapeHTML(p.name)} ${escapeHTML(p.pos)}</div>
+              <button class="btn-blue small" style="padding:4px 8px;font-size:12px;" onclick="addPlayerToTeam('${escapeJSString(p.name)}','A')">+ أسود</button>
+              <button class="btn-blue small" style="padding:4px 8px;font-size:12px;" onclick="addPlayerToTeam('${escapeJSString(p.name)}','B')">+ كوكتيل</button>
+            </div>
+          `).join("")}
+        </div>
+      </div>`;
+  } else {
+    reserveSection.innerHTML = "";
+  }
+}
+
+function movePlayerBetweenTeams(playerName, fromTeam){
+  if(!adminMode) return;
+  const name = normalizeName(playerName);
+  const toTeam = fromTeam === "A" ? "B" : "A";
+  const idx = state.teams[fromTeam].findIndex(p => p.name === name);
+  if(idx === -1) return;
+  const player = state.teams[fromTeam].splice(idx, 1)[0];
+  state.teams[toTeam].push(player);
+  renderManualLineupEditor();
+  renderPitch("pitchBlack", state.teams.A, "token-black");
+  renderPitch("pitchCocktail", state.teams.B, "token-cocktail");
+  renderSharePreview();
+}
+window.movePlayerBetweenTeams = movePlayerBetweenTeams;
+
+function addPlayerToTeam(playerName, teamKey){
+  if(!adminMode) return;
+  const name = normalizeName(playerName);
+  if(state.teams.A.some(p=>p.name===name) || state.teams.B.some(p=>p.name===name)) return;
+  const player = state.players.find(p => p.name === name);
+  if(!player) return;
+  state.teams[teamKey].push({...player});
+  renderManualLineupEditor();
+  renderPitch("pitchBlack", state.teams.A, "token-black");
+  renderPitch("pitchCocktail", state.teams.B, "token-cocktail");
+  renderSharePreview();
+}
+window.addPlayerToTeam = addPlayerToTeam;
+
+function removePlayerFromTeam(playerName, teamKey){
+  if(!adminMode) return;
+  const name = normalizeName(playerName);
+  state.teams[teamKey] = state.teams[teamKey].filter(p => p.name !== name);
+  renderManualLineupEditor();
+  renderPitch("pitchBlack", state.teams.A, "token-black");
+  renderPitch("pitchCocktail", state.teams.B, "token-cocktail");
+  renderSharePreview();
+}
+window.removePlayerFromTeam = removePlayerFromTeam;
+
+async function saveManualLineup(){
+  if(!adminMode) return;
+  await writeState();
+  renderAll();
+  alert("✅ تم حفظ التشكيلة المعدلة يدوياً وإرسالها لجميع اللاعبين!");
+}
+
+document.getElementById("saveManualLineupBtn").addEventListener("click", saveManualLineup);
+
 function renderAll(){ 
   populatePlayerSelect();
   renderTopInfo(); 
   renderRegistration(); 
   renderTeams(); 
+  renderManualLineupEditor();
   renderMatches(); 
   renderStats(); 
   renderEvaluation();
