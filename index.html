@@ -2494,7 +2494,11 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
     dress:[...dressSet] 
   }); 
 
-  await initRoundRatings(completedRound, completedMatchPlayers);
+  try {
+    await initRoundRatings(completedRound, completedMatchPlayers);
+  } catch(e) {
+    console.warn("تعذر تهيئة التقييم للجولة، لكن تم استمرار حفظ المباراة:", e?.message || e);
+  }
   
   rebuildFromMatches(state.matches); 
   state.registrations=[]; state.reserves=[]; state.registrationOpen=true; 
