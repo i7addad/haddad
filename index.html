@@ -415,6 +415,24 @@
     .player .meta { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
     .player-top { display: flex; gap: 10px; align-items: center; }
 
+    .progress-wrap {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+      margin: 8px 0 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #b38d11, #f5c518, #fff1ad);
+      transition: width .3s ease;
+      box-shadow: 0 0 14px rgba(245,197,24,0.35);
+    }
+
     .avatar {
       width: 50px; height: 50px;
       border-radius: 12px;
@@ -993,6 +1011,7 @@
         <!-- تم إضافة id وإخفاء الأزرار مبدئياً عن المستخدمين العاديين -->
         <div class="actions hidden" id="registrationAdminActions">
           <button class="btn-green" id="drawBtn" style="font-size: 16px; padding: 12px 24px;">⚡ إجراء القرعة المزدوجة</button>
+          <button id="resetRegistrationBtn" class="btn-danger">تصفير تسجيل المباراة</button>
           <button id="toggleRegistrationBtn" class="btn-blue">قفل / فتح التسجيل</button>
         </div>
       </div>
@@ -1082,16 +1101,16 @@
       <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:12px;">
         <div>
           <h3 style="color: var(--gold)">💰 تسجيل القطية</h3>
-          <div class="small" id="qatiyaStatus">تبرعات شراء كرة جديدة: اكتب الاسم وسجله مباشرة.</div>
+          <div class="small" id="qatiyaStatus">اختر اسمك من بطاقتك واضغط مشاركة، وبعدها أكد الدفع.</div>
         </div>
         <div class="actions">
-          <input id="qatiyaNameInput" placeholder="اكتب الاسم للتسجيل في شراء الكرة" style="min-width: 220px;" />
-          <button class="btn-green" id="qatiyaAddBtn">إضافة للحملة</button>
           <button class="btn-danger hidden" id="qatiyaClearBtn">تصفير قائمة القطية</button>
         </div>
       </div>
-      <div class="small" style="margin-bottom:8px; color: var(--gold-light)">المسجلين بالقطية: <span id="qatiyaCount">0</span></div>
-      <div id="qatiyaList" class="actions"></div>
+      <div class="small" style="margin-bottom:8px; color: var(--gold-light)">المسجلين: <span id="qatiyaCount">0</span> | المدفوع: <span id="qatiyaPaidCount">0</span></div>
+      <div class="progress-wrap"><div id="qatiyaProgressFill" class="progress-fill"></div></div>
+      <div id="qatiyaProgressText" class="small" style="margin-bottom:10px; color: var(--text-muted)">نسبة الإنجاز: 0%</div>
+      <div id="qatiyaPlayersGrid" class="grid-players"></div>
     </div>
   </section>
 
@@ -1331,7 +1350,9 @@ const defaultState = {
   registrations:[], 
   reserves:[], 
   qatiyaSignups:[],
+  qatiyaPaidPlayers:[],
   paidPlayers:[], 
+  queueRound: 1,
   matchInfo: { date: "الجمعة", time: "11:00 مساءً", location: "", groupLink: "" },
   registrationOpen:true,
   matchSize: 5,
@@ -1433,7 +1454,10 @@ function normalizeState(data){
   s.registrations = normalizeNameList(s.registrations);
   s.reserves = normalizeNameList(s.reserves);
   s.qatiyaSignups = normalizeNameList(s.qatiyaSignups);
+  s.qatiyaPaidPlayers = normalizeNameList(s.qatiyaPaidPlayers);
   s.paidPlayers = normalizeNameList(s.paidPlayers); 
+  const queueRound = Number(s.queueRound);
+  s.queueRound = Number.isFinite(queueRound) && queueRound > 0 ? queueRound : 1;
   s.matchInfo = normalizeMatchInfo(s.matchInfo);
   s.round = Number.isFinite(Number(s.round)) ? Number(s.round) : 1;
   s.seasonNumber = Number.isFinite(Number(s.seasonNumber)) ? Number(s.seasonNumber) : 1;
@@ -1596,6 +1620,11 @@ function readPlayerCredentials(){
 function clearPlayerCredentials(){
   try { localStorage.removeItem(PLAYER_CREDENTIALS_KEY); }
   catch(e) { console.warn("تعذر حذف بيانات جلسة اللاعب", e); }
+}
+
+function getActiveQueueRound(){
+  const value = Number(state.queueRound);
+  return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
 function getActiveLoginSessionVersion(){
@@ -1907,14 +1936,16 @@ function listenState(){
 }
 
 function syncDerivedRegistrationState(){
+  const activeQueueRound = getActiveQueueRound();
   const validPlayers = new Set(state.players.map(player => player.name));
   const queueEntries = Object.entries(playerQueue || {})
     .map(([name, entry]) => ({
       name: normalizeName(name),
       joinedAt: Number(entry?.joinedAt) || 0,
-      paid: !!entry?.paid
+      paid: !!entry?.paid,
+      queueRound: Number(entry?.queueRound ?? 1) || 1
     }))
-    .filter(entry => entry.name && validPlayers.has(entry.name))
+    .filter(entry => entry.name && validPlayers.has(entry.name) && entry.queueRound === activeQueueRound)
     .sort((first, second) => {
       if (first.joinedAt !== second.joinedAt) return first.joinedAt - second.joinedAt;
       return first.name.localeCompare(second.name, "ar");
@@ -2227,7 +2258,8 @@ async function upsertPlayerQueueEntry(name, paidValue){
   const currentEntry = playerQueue[name] || {};
   const payload = {
     joinedAt: Number(currentEntry.joinedAt) || firebase.database.ServerValue.TIMESTAMP,
-    paid: typeof paidValue === "boolean" ? paidValue : !!currentEntry.paid
+    paid: typeof paidValue === "boolean" ? paidValue : !!currentEntry.paid,
+    queueRound: getActiveQueueRound()
   };
   await db.ref(`${PLAYER_QUEUE_PATH}/${name}`).set(payload);
 }
@@ -2375,52 +2407,100 @@ function renderRegistration(){
   if(adminActions) adminActions.classList.toggle("hidden", !adminMode);
   
   document.getElementById("drawBtn").disabled=!adminMode || state.registrations.length!==(state.matchSize||5)*2; 
+  document.getElementById("resetRegistrationBtn").disabled=!adminMode;
   document.getElementById("toggleRegistrationBtn").disabled=!adminMode; 
 }
 
 function renderQatiyaSignup(){
-  const listEl = document.getElementById("qatiyaList");
+  const gridEl = document.getElementById("qatiyaPlayersGrid");
   const countEl = document.getElementById("qatiyaCount");
+  const paidCountEl = document.getElementById("qatiyaPaidCount");
+  const progressFill = document.getElementById("qatiyaProgressFill");
+  const progressText = document.getElementById("qatiyaProgressText");
   const statusEl = document.getElementById("qatiyaStatus");
-  const nameInput = document.getElementById("qatiyaNameInput");
-  const addBtn = document.getElementById("qatiyaAddBtn");
   const clearBtn = document.getElementById("qatiyaClearBtn");
-  if(!listEl || !countEl || !statusEl || !nameInput || !addBtn || !clearBtn) return;
+  if(!gridEl || !countEl || !paidCountEl || !progressFill || !progressText || !statusEl || !clearBtn) return;
 
   const signups = Array.isArray(state.qatiyaSignups) ? state.qatiyaSignups : [];
+  const paidPlayers = Array.isArray(state.qatiyaPaidPlayers) ? state.qatiyaPaidPlayers : [];
 
   countEl.textContent = String(signups.length);
+  paidCountEl.textContent = String(paidPlayers.length);
+  const progressRatio = signups.length ? Math.round((paidPlayers.length / signups.length) * 100) : 0;
+  progressFill.style.width = `${progressRatio}%`;
+  progressText.textContent = `نسبة الإنجاز: ${progressRatio}% (${paidPlayers.length}/${signups.length || 0})`;
   clearBtn.classList.toggle("hidden", !adminMode);
-  statusEl.textContent = "تبرعات شراء كرة جديدة: اكتب الاسم وسجله مباشرة.";
 
-  listEl.innerHTML = signups.length
-    ? signups.map(name => `
-      <span class="badge-main" style="display:inline-flex; align-items:center; gap:8px; background:rgba(245,197,24,0.14); color: var(--gold-light); border:1px solid rgba(245,197,24,0.45);">
-        ${escapeHTML(name)}
-        <button onclick="removeQatiyaSignupName('${escapeJSString(name)}')" style="padding:0; width:20px; height:20px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); background:rgba(0,0,0,0.25); color:#fff; font-size:13px; line-height:1;">×</button>
-      </span>`).join("")
-    : `<span class="small" style="opacity:0.8">لا يوجد مسجلين لحملة شراء الكرة حالياً.</span>`;
+  if(currentPlayerName){
+    statusEl.textContent = "من بطاقتك اضغط مشاركة، وبعدها أكد الدفع.";
+  } else {
+    statusEl.textContent = "سجل دخولك كلاعب أولاً حتى تتحكم ببطاقتك.";
+  }
+
+  gridEl.innerHTML = "";
+  state.players.forEach(player => {
+    const isSigned = signups.includes(player.name);
+    const isPaid = paidPlayers.includes(player.name);
+    const canAct = adminMode || currentPlayerName === player.name;
+
+    const card = document.createElement("div");
+    card.className = "player";
+
+    const participationBtnClass = isSigned ? "chip active small" : "chip small";
+    const participationText = "مشاركة";
+    const paymentControl = isSigned
+      ? (isPaid
+          ? `<button class="chip small" ${canAct ? `onclick="toggleQatiyaPaymentForPlayer('${escapeJSString(player.name)}')"` : "disabled"} style="background:rgba(22,101,52,0.8); border-color:var(--success); color:#fff;">تم الدفع ✅</button>`
+          : `<button class="btn-blue small" ${canAct ? `onclick="toggleQatiyaPaymentForPlayer('${escapeJSString(player.name)}')"` : "disabled"} style="background:transparent; border:1px solid var(--gold); color:var(--gold);">تأكيد الدفع 💳</button>`)
+      : `<span class="small" style="opacity:0.75">غير مسجل بالقطية</span>`;
+
+    card.innerHTML = `
+      <div class="player-top">
+        ${avatarHTML(player)}
+        <div style="text-align:right">
+          <div style="font-weight:800; font-size: 15px; color: #fff">${escapeHTML(player.name)}</div>
+          <div class="meta">${escapeHTML(player.pos)} | Rating: ${escapeHTML(player.rating)}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        <button class="${participationBtnClass}" ${canAct ? `onclick="toggleQatiyaSignupForPlayer('${escapeJSString(player.name)}')"` : "disabled"}>${participationText}</button>
+        <div>${paymentControl}</div>
+      </div>
+    `;
+
+    gridEl.appendChild(card);
+  });
 }
 
-async function addQatiyaSignupByName(){
-  const input = document.getElementById("qatiyaNameInput");
-  const rawName = input ? input.value : "";
-  const name = normalizeName(rawName);
-  if(!name) return alert("اكتب الاسم أولاً.");
+async function toggleQatiyaSignupForPlayer(name){
+  if(!adminMode && currentPlayerName !== name) return alert("يمكنك تعديل حالتك أنت فقط.");
+  const normalized = normalizeName(name);
+  if(!normalized) return;
 
   const signups = Array.isArray(state.qatiyaSignups) ? state.qatiyaSignups : [];
-  if(signups.includes(name)) return alert("الاسم مسجل مسبقاً في القطية.");
-
-  state.qatiyaSignups = [...signups, name];
+  if(signups.includes(normalized)) {
+    state.qatiyaSignups = signups.filter(playerName => playerName !== normalized);
+    state.qatiyaPaidPlayers = (state.qatiyaPaidPlayers || []).filter(playerName => playerName !== normalized);
+  } else {
+    state.qatiyaSignups = [...signups, normalized];
+  }
   await writeState();
-  if(input) input.value = "";
   renderAll();
 }
 
-async function removeQatiyaSignupName(name){
+async function toggleQatiyaPaymentForPlayer(name){
+  if(!adminMode && currentPlayerName !== name) return alert("يمكنك تأكيد دفعك أنت فقط.");
   const normalized = normalizeName(name);
   if(!normalized) return;
-  state.qatiyaSignups = (state.qatiyaSignups || []).filter(playerName => playerName !== normalized);
+
+  const signups = Array.isArray(state.qatiyaSignups) ? state.qatiyaSignups : [];
+  if(!signups.includes(normalized)) return alert("سجل بالقطية أولاً.");
+
+  const paidPlayers = Array.isArray(state.qatiyaPaidPlayers) ? state.qatiyaPaidPlayers : [];
+  state.qatiyaPaidPlayers = paidPlayers.includes(normalized)
+    ? paidPlayers.filter(playerName => playerName !== normalized)
+    : [...paidPlayers, normalized];
+
   await writeState();
   renderAll();
 }
@@ -2430,18 +2510,40 @@ async function clearQatiyaSignups(){
   const confirmed = await showAppConfirm("هل تريد تصفير قائمة تسجيل القطية؟", "تأكيد");
   if(!confirmed) return;
   state.qatiyaSignups = [];
+  state.qatiyaPaidPlayers = [];
   await writeState();
   renderAll();
 }
-window.addQatiyaSignupByName = addQatiyaSignupByName;
-window.removeQatiyaSignupName = removeQatiyaSignupName;
+window.toggleQatiyaSignupForPlayer = toggleQatiyaSignupForPlayer;
+window.toggleQatiyaPaymentForPlayer = toggleQatiyaPaymentForPlayer;
 window.clearQatiyaSignups = clearQatiyaSignups;
 
-document.getElementById("qatiyaAddBtn").addEventListener("click", addQatiyaSignupByName);
-document.getElementById("qatiyaNameInput").addEventListener("keydown", event => {
-  if(event.key === "Enter") addQatiyaSignupByName();
-});
 document.getElementById("qatiyaClearBtn").addEventListener("click", clearQatiyaSignups);
+
+async function resetMatchRegistration(){
+  if(!adminMode) return;
+  const confirmed = await showAppConfirm("هل تريد تصفير تسجيل المباراة الحالية وبدء تسجيل جديد؟", "تأكيد");
+  if(!confirmed) return;
+
+  state.queueRound = getActiveQueueRound() + 1;
+  state.registrations = [];
+  state.reserves = [];
+  state.paidPlayers = [];
+  state.teams = {A:[], B:[]};
+  playerQueue = {};
+
+  try {
+    await db.ref(PLAYER_QUEUE_PATH).remove();
+  } catch (error) {
+    console.warn("تعذر حذف قائمة الانتظار بالكامل، تم بدء جولة تسجيل جديدة على أي حال:", error?.message || error);
+  }
+
+  syncDerivedRegistrationState();
+  await writeState();
+  renderAll();
+  alert("تم تصفير تسجيل المباراة وفتح تسجيل جديد.");
+}
+document.getElementById("resetRegistrationBtn").addEventListener("click", resetMatchRegistration);
 
 async function registerSelf(){
   if(!currentPlayerName) return alert("سجل دخولك كلاعب أولاً.");
@@ -2660,6 +2762,7 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
   state.registrations=[]; state.reserves=[]; state.registrationOpen=true; 
   state.paidPlayers=[]; 
   state.teams={A:[],B:[]}; 
+  state.queueRound = getActiveQueueRound() + 1;
   document.getElementById("scoreA").value=""; document.getElementById("scoreB").value=""; 
   lateA=[]; lateB=[]; dressA=[]; dressB=[]; 
   
@@ -2675,15 +2778,6 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
     ));
   }
   playerQueue = {};
-  state.loginSessionVersion = getActiveLoginSessionVersion() + 1;
-  clearPlayerCredentials();
-  currentPlayerName = null;
-  currentPlayerCode = null;
-  try {
-    await db.ref(PLAYER_SESSION_PATH).remove();
-  } catch (error) {
-    console.warn("تعذر تصفير جلسات دخول اللاعبين:", error?.message || error);
-  }
   syncDerivedRegistrationState();
   await writeState(); 
   alert(`تم اعتماد النتيجة بنجاح وتحديث الإحصائيات!\n\n📣 بدأ التسجيل للمباراة القادمة (الجولة ${state.round}) الآن.`);
@@ -3225,6 +3319,8 @@ async function deletePlayer(index){
   state.players.splice(index,1); 
   state.registrations=state.registrations.filter(p=>p!==player.name); 
   state.reserves=state.reserves.filter(p=>p!==player.name); 
+  state.qatiyaSignups=state.qatiyaSignups.filter(p=>p!==player.name);
+  state.qatiyaPaidPlayers=state.qatiyaPaidPlayers.filter(p=>p!==player.name);
   state.teams.A=state.teams.A.filter(p=>p.name!==player.name); 
   state.teams.B=state.teams.B.filter(p=>p.name!==player.name); 
   
@@ -3265,6 +3361,7 @@ document.getElementById("newSeasonBtn").addEventListener("click", async ()=>{
   state.matches=[]; 
   state.round=1; 
   state.seasonNumber+=1; 
+  state.queueRound=1;
   state.registrations=[]; 
   state.reserves=[]; 
   state.paidPlayers=[]; 
