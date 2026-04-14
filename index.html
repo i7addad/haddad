@@ -1180,6 +1180,7 @@
       <h2 style="color: var(--gold)">⚙️ تحكم الإدارة الشامل</h2>
       <div class="actions" style="margin-top: 16px;">
         <button class="btn-danger" id="logoutBtn">تسجيل خروج الأدمن</button>
+        <button class="btn-danger" id="resetRegistrationBtnAdmin">تصفير تسجيل المباراة</button>
         <button class="btn-green" id="newSeasonBtn" style="font-size: 16px; font-weight: 800;">✨ إنهاء الموسم الحالي والبدء بموسم جديد</button>
       </div>
     </div>
@@ -2432,7 +2433,7 @@ function renderQatiyaSignup(){
   clearBtn.classList.toggle("hidden", !adminMode);
 
   if(currentPlayerName){
-    statusEl.textContent = "من بطاقتك اضغط مشاركة، وبعدها أكد الدفع.";
+    statusEl.textContent = "من بطاقتك اختر بقط أو معاكم، وبعدها أكد الدفع.";
   } else {
     statusEl.textContent = "سجل دخولك كلاعب أولاً حتى تتحكم ببطاقتك.";
   }
@@ -2447,7 +2448,7 @@ function renderQatiyaSignup(){
     card.className = "player";
 
     const participationBtnClass = isSigned ? "chip active small" : "chip small";
-    const participationText = "مشاركة";
+    const participationText = isSigned ? "معاكم" : "بقط";
     const paymentControl = isSigned
       ? (isPaid
           ? `<button class="chip small" ${canAct ? `onclick="toggleQatiyaPaymentForPlayer('${escapeJSString(player.name)}')"` : "disabled"} style="background:rgba(22,101,52,0.8); border-color:var(--success); color:#fff;">تم الدفع ✅</button>`
@@ -2530,6 +2531,7 @@ async function resetMatchRegistration(){
   state.reserves = [];
   state.paidPlayers = [];
   state.teams = {A:[], B:[]};
+  lastAutoDrawRegistrationSignature = "";
   playerQueue = {};
 
   try {
@@ -2544,6 +2546,7 @@ async function resetMatchRegistration(){
   alert("تم تصفير تسجيل المباراة وفتح تسجيل جديد.");
 }
 document.getElementById("resetRegistrationBtn").addEventListener("click", resetMatchRegistration);
+document.getElementById("resetRegistrationBtnAdmin").addEventListener("click", resetMatchRegistration);
 
 async function registerSelf(){
   if(!currentPlayerName) return alert("سجل دخولك كلاعب أولاً.");
@@ -2763,8 +2766,10 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
   state.paidPlayers=[]; 
   state.teams={A:[],B:[]}; 
   state.queueRound = getActiveQueueRound() + 1;
+  lastAutoDrawRegistrationSignature = "";
   document.getElementById("scoreA").value=""; document.getElementById("scoreB").value=""; 
   lateA=[]; lateB=[]; dressA=[]; dressB=[]; 
+  renderAll();
   
   try {
     await db.ref(PLAYER_QUEUE_PATH).remove();
