@@ -875,6 +875,23 @@
       box-shadow: 0 0 0 2px rgba(245,197,24,0.15);
     }
 
+    .registration-announce {
+      margin-bottom: 16px;
+      border-radius: 14px;
+      padding: 12px 14px;
+      border: 1px solid rgba(0,230,118,0.35);
+      background: linear-gradient(135deg, rgba(0,230,118,0.16), rgba(22,101,52,0.14));
+      color: #d5ffe7;
+      font-weight: 800;
+      box-shadow: 0 10px 24px rgba(0,230,118,0.12);
+      animation: announcePulse 2.3s ease-in-out infinite;
+    }
+
+    @keyframes announcePulse {
+      0%, 100% { box-shadow: 0 10px 24px rgba(0,230,118,0.10); }
+      50% { box-shadow: 0 12px 32px rgba(0,230,118,0.25); }
+    }
+
     @media (max-width: 700px) {
       .app-alert-title { font-size: 18px; }
       .app-alert-message { font-size: 15px; }
@@ -918,6 +935,7 @@
         <button id="installAppBtn" class="chip" style="font-weight:900;">📲 تثبيت التطبيق</button>
         <div class="tabs">
           <button class="chip active" data-tab="league">الملعب والتشكيلة</button>
+          <button class="chip" data-tab="ball">الكرة الجديدة</button>
           <button class="chip" data-tab="matches">المباريات</button>
           <button class="chip" data-tab="stats">الترتيب</button>
           <button class="chip" data-tab="evaluation">التقييم</button>
@@ -979,6 +997,7 @@
         </div>
       </div>
       <div class="small" id="registrationStatus" style="margin-bottom:16px; font-weight: 800; color: #fff"></div>
+      <div id="registrationAnnouncement" class="registration-announce hidden"></div>
       <div class="grid-players" id="playersGrid"></div>
     </div>
 
@@ -1053,6 +1072,26 @@
           <button class="chip" id="copyShareBtn">نسخ النص</button>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section id="tab-ball" class="hidden">
+    <div class="card" style="border-top: 2px solid var(--gold) !important;">
+      <h2 style="color: var(--gold)">⚽ شراء كرة جديدة</h2>
+      <div class="small" style="margin-bottom:14px;">هذا التبويب مستقل تماماً عن تسجيل المباريات والتشكيلة.</div>
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div>
+          <h3 style="color: var(--gold)">💰 تسجيل القطية</h3>
+          <div class="small" id="qatiyaStatus">تبرعات شراء كرة جديدة: اكتب الاسم وسجله مباشرة.</div>
+        </div>
+        <div class="actions">
+          <input id="qatiyaNameInput" placeholder="اكتب الاسم للتسجيل في شراء الكرة" style="min-width: 220px;" />
+          <button class="btn-green" id="qatiyaAddBtn">إضافة للحملة</button>
+          <button class="btn-danger hidden" id="qatiyaClearBtn">تصفير قائمة القطية</button>
+        </div>
+      </div>
+      <div class="small" style="margin-bottom:8px; color: var(--gold-light)">المسجلين بالقطية: <span id="qatiyaCount">0</span></div>
+      <div id="qatiyaList" class="actions"></div>
     </div>
   </section>
 
@@ -1291,10 +1330,12 @@ const defaultState = {
   seasonArchive:[], 
   registrations:[], 
   reserves:[], 
+  qatiyaSignups:[],
   paidPlayers:[], 
   matchInfo: { date: "الجمعة", time: "11:00 مساءً", location: "", groupLink: "" },
   registrationOpen:true,
-  matchSize: 5
+  matchSize: 5,
+  loginSessionVersion: 1
 };
 
 const ALLOWED_POSITIONS = ["🧤", "🛡️", "⚽", "🔥"];
@@ -1391,6 +1432,7 @@ function normalizeState(data){
   s.seasonArchive = Array.isArray(s.seasonArchive) ? s.seasonArchive : [];
   s.registrations = normalizeNameList(s.registrations);
   s.reserves = normalizeNameList(s.reserves);
+  s.qatiyaSignups = normalizeNameList(s.qatiyaSignups);
   s.paidPlayers = normalizeNameList(s.paidPlayers); 
   s.matchInfo = normalizeMatchInfo(s.matchInfo);
   s.round = Number.isFinite(Number(s.round)) ? Number(s.round) : 1;
@@ -1398,6 +1440,8 @@ function normalizeState(data){
   s.registrationOpen = typeof s.registrationOpen === "boolean" ? s.registrationOpen : true;
   const validSizes = [5, 6, 7];
   s.matchSize = validSizes.includes(Number(s.matchSize)) ? Number(s.matchSize) : 5;
+  const sessionVersion = Number(s.loginSessionVersion);
+  s.loginSessionVersion = Number.isFinite(sessionVersion) && sessionVersion > 0 ? sessionVersion : 1;
   return s;
 }
 
@@ -1522,11 +1566,12 @@ window.alert = function(message){
   showAppAlert(message, "تنويه");
 };
 
-function savePlayerCredentials(name, code){
+function savePlayerCredentials(name, code, sessionVersion = getActiveLoginSessionVersion()){
   try {
     localStorage.setItem(PLAYER_CREDENTIALS_KEY, JSON.stringify({
       name: normalizeName(name),
-      code: normalizeCode(code)
+      code: normalizeCode(code),
+      sessionVersion: Number(sessionVersion) || 1
     }));
   } catch (e) {
     console.warn("تعذر حفظ بيانات جلسة اللاعب", e);
@@ -1540,8 +1585,9 @@ function readPlayerCredentials(){
     const parsed = JSON.parse(raw);
     const name = normalizeName(parsed?.name || "");
     const code = normalizeCode(parsed?.code || "");
+    const sessionVersion = Number(parsed?.sessionVersion) || 1;
     if(!name || !code) return null;
-    return { name, code };
+    return { name, code, sessionVersion };
   } catch {
     return null;
   }
@@ -1550,6 +1596,11 @@ function readPlayerCredentials(){
 function clearPlayerCredentials(){
   try { localStorage.removeItem(PLAYER_CREDENTIALS_KEY); }
   catch(e) { console.warn("تعذر حذف بيانات جلسة اللاعب", e); }
+}
+
+function getActiveLoginSessionVersion(){
+  const version = Number(state.loginSessionVersion);
+  return Number.isFinite(version) && version > 0 ? version : 1;
 }
 
 function getRatingRoundKey(round){
@@ -1676,6 +1727,11 @@ async function restorePlayerSessionIfPossible(){
   const creds = readPlayerCredentials();
   if(!creds) return;
 
+  if((Number(creds.sessionVersion) || 1) !== getActiveLoginSessionVersion()){
+    clearPlayerCredentials();
+    return;
+  }
+
   const expectedCode = normalizeCode(publicCodes[creds.name] || "");
   if(expectedCode && expectedCode !== creds.code){
     clearPlayerCredentials();
@@ -1688,6 +1744,7 @@ async function restorePlayerSessionIfPossible(){
     await db.ref(`${PLAYER_SESSION_PATH}/${currentUserUid}`).set({
       playerName: creds.name,
       code: creds.code,
+      sessionVersion: getActiveLoginSessionVersion(),
       updatedAt: firebase.database.ServerValue.TIMESTAMP
     });
   } catch (error) {
@@ -1889,6 +1946,16 @@ async function autoDrawFromQueueIfNeeded(){
   autoDrawInProgress = true;
   try {
     if(registrations.length === (state.matchSize || 5) * 2){
+      const teamSize = state.matchSize || 5;
+      const hasCompleteTeams = state.teams.A.length === teamSize && state.teams.B.length === teamSize;
+      const drawnNames = [...state.teams.A, ...state.teams.B].map(player => player.name).sort().join("|");
+      const registeredNames = [...registrations].sort().join("|");
+
+      if(hasCompleteTeams && drawnNames === registeredNames){
+        lastAutoDrawRegistrationSignature = registrationSignature;
+        return;
+      }
+
       if(registrationSignature === lastAutoDrawRegistrationSignature) return;
 
       performDrawLogic();
@@ -1929,6 +1996,20 @@ function attachPlayerSessionListener(uid){
 
   sessionListener = snapshot => {
     const session = snapshot.val();
+    const expectedSessionVersion = getActiveLoginSessionVersion();
+    const sessionVersion = Number(session?.sessionVersion) || 1;
+
+    if(session && sessionVersion !== expectedSessionVersion) {
+      currentPlayerName = null;
+      currentPlayerCode = null;
+      clearPlayerCredentials();
+      db.ref(`${PLAYER_SESSION_PATH}/${uid}`).remove().catch(error => {
+        console.warn("تعذر حذف جلسة اللاعب المنتهية:", error?.message || error);
+      });
+      renderAll();
+      return;
+    }
+
     currentPlayerName = normalizeName(session?.playerName || "") || null;
     currentPlayerCode = normalizeCode(session?.code || "") || null;
     if(!currentPlayerName && !adminMode) {
@@ -1970,7 +2051,7 @@ auth.onAuthStateChanged(async user => {
 function setTab(tab){ 
   activeTab = tab; 
   document.querySelectorAll("[data-tab]").forEach(btn => btn.classList.toggle("active", btn.dataset.tab===tab)); 
-  ["league","matches","stats","evaluation","archive","admin"].forEach(t => document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab)); 
+  ["league","ball","matches","stats","evaluation","archive","admin"].forEach(t => document.getElementById("tab-"+t).classList.toggle("hidden", t!==tab)); 
   if(tab === "admin" && adminMode) renderPlayersAdminList(); 
 }
 document.querySelectorAll("[data-tab]").forEach(btn => btn.addEventListener("click", () => setTab(btn.dataset.tab)));
@@ -2105,9 +2186,10 @@ async function playerLogin(){
     await db.ref(`${PLAYER_SESSION_PATH}/${sessionUid}`).set({
       playerName: name,
       code,
+      sessionVersion: getActiveLoginSessionVersion(),
       updatedAt: firebase.database.ServerValue.TIMESTAMP
     });
-    savePlayerCredentials(name, code);
+    savePlayerCredentials(name, code, getActiveLoginSessionVersion());
     document.getElementById("playerCodeInput").value = "";
     alert("تم تسجيل دخول اللاعب بنجاح.");
   } catch (error) {
@@ -2227,6 +2309,15 @@ function populatePlayerSelect(){
 function renderRegistration(){ 
   const grid=document.getElementById("playersGrid"); 
   document.getElementById("registrationStatus").textContent=state.registrationOpen?"🟢 باب التسجيل للمباراة القادمة مفتوح الآن":"🔴 باب التسجيل مغلق حالياً من قبل الإدارة"; 
+  const announceBox = document.getElementById("registrationAnnouncement");
+  if(announceBox){
+    const hasCurrentTeams = state.teams.A.length > 0 || state.teams.B.length > 0;
+    const showAnnouncement = state.registrationOpen && !hasCurrentTeams;
+    announceBox.classList.toggle("hidden", !showAnnouncement);
+    if(showAnnouncement){
+      announceBox.textContent = `📣 بدأ التسجيل للمباراة القادمة (الجولة ${state.round}) - سجّل حضورك الآن قبل اكتمال العدد.`;
+    }
+  }
   grid.innerHTML=""; 
   
   state.players.forEach(p=>{ 
@@ -2286,6 +2377,71 @@ function renderRegistration(){
   document.getElementById("drawBtn").disabled=!adminMode || state.registrations.length!==(state.matchSize||5)*2; 
   document.getElementById("toggleRegistrationBtn").disabled=!adminMode; 
 }
+
+function renderQatiyaSignup(){
+  const listEl = document.getElementById("qatiyaList");
+  const countEl = document.getElementById("qatiyaCount");
+  const statusEl = document.getElementById("qatiyaStatus");
+  const nameInput = document.getElementById("qatiyaNameInput");
+  const addBtn = document.getElementById("qatiyaAddBtn");
+  const clearBtn = document.getElementById("qatiyaClearBtn");
+  if(!listEl || !countEl || !statusEl || !nameInput || !addBtn || !clearBtn) return;
+
+  const signups = Array.isArray(state.qatiyaSignups) ? state.qatiyaSignups : [];
+
+  countEl.textContent = String(signups.length);
+  clearBtn.classList.toggle("hidden", !adminMode);
+  statusEl.textContent = "تبرعات شراء كرة جديدة: اكتب الاسم وسجله مباشرة.";
+
+  listEl.innerHTML = signups.length
+    ? signups.map(name => `
+      <span class="badge-main" style="display:inline-flex; align-items:center; gap:8px; background:rgba(245,197,24,0.14); color: var(--gold-light); border:1px solid rgba(245,197,24,0.45);">
+        ${escapeHTML(name)}
+        <button onclick="removeQatiyaSignupName('${escapeJSString(name)}')" style="padding:0; width:20px; height:20px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); background:rgba(0,0,0,0.25); color:#fff; font-size:13px; line-height:1;">×</button>
+      </span>`).join("")
+    : `<span class="small" style="opacity:0.8">لا يوجد مسجلين لحملة شراء الكرة حالياً.</span>`;
+}
+
+async function addQatiyaSignupByName(){
+  const input = document.getElementById("qatiyaNameInput");
+  const rawName = input ? input.value : "";
+  const name = normalizeName(rawName);
+  if(!name) return alert("اكتب الاسم أولاً.");
+
+  const signups = Array.isArray(state.qatiyaSignups) ? state.qatiyaSignups : [];
+  if(signups.includes(name)) return alert("الاسم مسجل مسبقاً في القطية.");
+
+  state.qatiyaSignups = [...signups, name];
+  await writeState();
+  if(input) input.value = "";
+  renderAll();
+}
+
+async function removeQatiyaSignupName(name){
+  const normalized = normalizeName(name);
+  if(!normalized) return;
+  state.qatiyaSignups = (state.qatiyaSignups || []).filter(playerName => playerName !== normalized);
+  await writeState();
+  renderAll();
+}
+
+async function clearQatiyaSignups(){
+  if(!adminMode) return;
+  const confirmed = await showAppConfirm("هل تريد تصفير قائمة تسجيل القطية؟", "تأكيد");
+  if(!confirmed) return;
+  state.qatiyaSignups = [];
+  await writeState();
+  renderAll();
+}
+window.addQatiyaSignupByName = addQatiyaSignupByName;
+window.removeQatiyaSignupName = removeQatiyaSignupName;
+window.clearQatiyaSignups = clearQatiyaSignups;
+
+document.getElementById("qatiyaAddBtn").addEventListener("click", addQatiyaSignupByName);
+document.getElementById("qatiyaNameInput").addEventListener("keydown", event => {
+  if(event.key === "Enter") addQatiyaSignupByName();
+});
+document.getElementById("qatiyaClearBtn").addEventListener("click", clearQatiyaSignups);
 
 async function registerSelf(){
   if(!currentPlayerName) return alert("سجل دخولك كلاعب أولاً.");
@@ -2510,12 +2666,27 @@ document.getElementById("saveMatchBtn").addEventListener("click", async ()=>{
   try {
     await db.ref(PLAYER_QUEUE_PATH).remove();
   } catch(e) {
-    console.warn("تعذر حذف قائمة الانتظار، لكن سيتم استمرار حفظ المباراة:", e?.message || e);
+    // لو فشل الحذف الكلي، نحذف كل لاعب بشكل فردي
+    const queueNames = Object.keys(playerQueue);
+    await Promise.all(queueNames.map(name =>
+      db.ref(`${PLAYER_QUEUE_PATH}/${name}`).remove().catch(err =>
+        console.warn(`تعذر حذف ${name} من قائمة الانتظار:`, err?.message || err)
+      )
+    ));
   }
   playerQueue = {};
+  state.loginSessionVersion = getActiveLoginSessionVersion() + 1;
+  clearPlayerCredentials();
+  currentPlayerName = null;
+  currentPlayerCode = null;
+  try {
+    await db.ref(PLAYER_SESSION_PATH).remove();
+  } catch (error) {
+    console.warn("تعذر تصفير جلسات دخول اللاعبين:", error?.message || error);
+  }
   syncDerivedRegistrationState();
   await writeState(); 
-  alert("تم اعتماد النتيجة بنجاح وتحديث الإحصائيات!");
+  alert(`تم اعتماد النتيجة بنجاح وتحديث الإحصائيات!\n\n📣 بدأ التسجيل للمباراة القادمة (الجولة ${state.round}) الآن.`);
   renderAll(); 
 });
 
@@ -3311,6 +3482,7 @@ document.getElementById("saveManualLineupBtn").addEventListener("click", saveMan
 function renderAll(){ 
   populatePlayerSelect();
   renderTopInfo(); 
+  renderQatiyaSignup();
   renderRegistration(); 
   renderTeams(); 
   renderManualLineupEditor();
