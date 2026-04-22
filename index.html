@@ -991,7 +991,7 @@
         <div>المباريات المسجلة</div><div class="v" id="statMatches">0</div>
       </div>
       <div class="stat">
-        <div>المسجلين أساسي</div><div class="v" id="statSelected" style="color: var(--gold)">0/10</div>
+        <div>المسجلين أساسي</div><div class="v" id="statSelected" style="color: var(--gold)">0/8</div>
       </div>
       <div class="stat">
         <div>الاحتياط</div><div class="v" id="statReserve" style="color: var(--danger)">0</div>
@@ -1006,7 +1006,7 @@
       <div class="row" style="justify-content:space-between;align-items:center; margin-bottom: 16px;">
         <div>
           <h3 style="color: var(--gold)">🎮 قائمة تسجيل الحضور</h3>
-          <div class="small">أول ${(state.matchSize||5)*2} لاعبًا أساسي، والبقية احتياط بالترتيب.</div>
+          <div class="small" id="registrationHint">أول 8 لاعبًا أساسي، والبقية احتياط بالترتيب.</div>
         </div>
         <!-- تم إضافة id وإخفاء الأزرار مبدئياً عن المستخدمين العاديين -->
         <div class="actions hidden" id="registrationAdminActions">
@@ -1198,9 +1198,12 @@
       <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
         <div class="small" style="margin-bottom:8px; color:var(--text-muted)">عدد اللاعبين في كل فريق (يحدد عند الإعلان عن المباراة):</div>
         <div class="chips" id="matchSizeButtons">
+          <button class="chip" data-size="4" onclick="setMatchSize(4)">4 × 4</button>
           <button class="chip active" data-size="5" onclick="setMatchSize(5)">5 × 5 (افتراضي)</button>
           <button class="chip" data-size="6" onclick="setMatchSize(6)">6 × 6</button>
           <button class="chip" data-size="7" onclick="setMatchSize(7)">7 × 7</button>
+          <button class="chip" data-size="8" onclick="setMatchSize(8)">8 × 8</button>
+          <button class="chip" data-size="9" onclick="setMatchSize(9)">9 × 9</button>
         </div>
       </div>
       <button class="btn-green" id="saveInfoBtn" style="width: 100%; font-size: 16px; margin-top: 12px;">حفظ تفاصيل المباراة وعدد اللاعبين</button>
@@ -1341,6 +1344,10 @@ const RATINGS_PATH = "league/ratings";
 const PLAYER_CREDENTIALS_KEY = "playerCredentials_v1";
 
 // هيكل البيانات الافتراضي مع معلومات المباراة (الجديد)
+const MIN_MATCH_SIZE = 4;
+const MAX_MATCH_SIZE = 9;
+const DEFAULT_MATCH_SIZE = 5;
+
 const defaultState = { 
   players: [], 
   teams:{A:[],B:[]}, 
@@ -1356,7 +1363,7 @@ const defaultState = {
   queueRound: 1,
   matchInfo: { date: "الجمعة", time: "11:00 مساءً", location: "", groupLink: "" },
   registrationOpen:true,
-  matchSize: 5,
+  matchSize: DEFAULT_MATCH_SIZE,
   loginSessionVersion: 1
 };
 
@@ -1463,8 +1470,10 @@ function normalizeState(data){
   s.round = Number.isFinite(Number(s.round)) ? Number(s.round) : 1;
   s.seasonNumber = Number.isFinite(Number(s.seasonNumber)) ? Number(s.seasonNumber) : 1;
   s.registrationOpen = typeof s.registrationOpen === "boolean" ? s.registrationOpen : true;
-  const validSizes = [5, 6, 7];
-  s.matchSize = validSizes.includes(Number(s.matchSize)) ? Number(s.matchSize) : 5;
+  const parsedMatchSize = Number(s.matchSize);
+  s.matchSize = parsedMatchSize >= MIN_MATCH_SIZE && parsedMatchSize <= MAX_MATCH_SIZE
+    ? parsedMatchSize
+    : DEFAULT_MATCH_SIZE;
   const sessionVersion = Number(s.loginSessionVersion);
   s.loginSessionVersion = Number.isFinite(sessionVersion) && sessionVersion > 0 ? sessionVersion : 1;
   return s;
@@ -2098,7 +2107,12 @@ function formationSlots(team){
   const slots=[]; 
   const use=(arr,coords,label)=>arr.forEach((p,i)=>coords[i]&&slots.push({...coords[i],player:p,label})); 
   
-  if(size <= 5){
+  if(size <= 4){
+    use(gk, [{x:50,y:87}],"حارس");
+    use(def,[{x:28,y:66},{x:72,y:66},{x:50,y:72}],"دفاع");
+    use(mid,[{x:25,y:48},{x:50,y:45},{x:75,y:48}],"وسط");
+    use(att,[{x:50,y:20},{x:32,y:25},{x:68,y:25}],"هجوم");
+  } else if(size === 5){
     use(gk, [{x:50,y:87}],"حارس"); 
     use(def,[{x:25,y:68},{x:75,y:68},{x:50,y:72}],"دفاع"); 
     use(mid,[{x:20,y:48},{x:50,y:45},{x:80,y:48},{x:35,y:55},{x:65,y:55}],"وسط"); 
@@ -2108,12 +2122,22 @@ function formationSlots(team){
     use(def,[{x:22,y:71},{x:78,y:71},{x:50,y:75}],"دفاع"); 
     use(mid,[{x:18,y:52},{x:50,y:47},{x:82,y:52},{x:33,y:59},{x:67,y:59}],"وسط"); 
     use(att,[{x:34,y:21},{x:66,y:21},{x:50,y:13}],"هجوم"); 
-  } else {
-    // 7 players
+  } else if(size === 7){
     use(gk, [{x:50,y:88}],"حارس"); 
     use(def,[{x:18,y:71},{x:50,y:75},{x:82,y:71},{x:34,y:78},{x:66,y:78}],"دفاع"); 
     use(mid,[{x:15,y:55},{x:38,y:49},{x:62,y:49},{x:85,y:55},{x:50,y:59},{x:27,y:62},{x:73,y:62}],"وسط"); 
     use(att,[{x:28,y:21},{x:50,y:13},{x:72,y:21},{x:39,y:27},{x:61,y:27}],"هجوم"); 
+  } else if(size === 8){
+    use(gk, [{x:50,y:88}],"حارس");
+    use(def,[{x:16,y:73},{x:37,y:77},{x:63,y:77},{x:84,y:73},{x:50,y:80}],"دفاع");
+    use(mid,[{x:14,y:56},{x:34,y:50},{x:50,y:46},{x:66,y:50},{x:86,y:56},{x:25,y:60},{x:75,y:60}],"وسط");
+    use(att,[{x:26,y:24},{x:50,y:16},{x:74,y:24},{x:38,y:30},{x:62,y:30}],"هجوم");
+  } else {
+    // 9 players and above (max from settings is 9)
+    use(gk, [{x:50,y:88}],"حارس");
+    use(def,[{x:14,y:74},{x:30,y:78},{x:50,y:81},{x:70,y:78},{x:86,y:74}],"دفاع");
+    use(mid,[{x:12,y:58},{x:30,y:53},{x:50,y:49},{x:70,y:53},{x:88,y:58},{x:22,y:63},{x:78,y:63}],"وسط");
+    use(att,[{x:22,y:26},{x:40,y:20},{x:60,y:20},{x:78,y:26},{x:50,y:14}],"هجوم");
   }
   
   team.filter(p=>!slots.find(s=>s.player.name===p.name)).forEach((p,i)=>slots.push({x:15+(i*12),y:62,player:p,label:"لاعب"})); 
@@ -2321,7 +2345,7 @@ document.getElementById("saveInfoBtn").addEventListener("click", async () => {
   // حفظ حجم الفريق المحدد
   const selectedSizeBtn = document.querySelector("#matchSizeButtons [data-size].active");
   const newSize = selectedSizeBtn ? Number(selectedSizeBtn.dataset.size) : state.matchSize;
-  if([5,6,7].includes(newSize) && newSize !== state.matchSize){
+  if(newSize >= MIN_MATCH_SIZE && newSize <= MAX_MATCH_SIZE && newSize !== state.matchSize){
     state.matchSize = newSize;
     // إعادة ضبط التشكيلة الحالية عند تغيير العدد
     if(state.teams.A.length || state.teams.B.length){
@@ -2341,6 +2365,10 @@ function populatePlayerSelect(){
 
 function renderRegistration(){ 
   const grid=document.getElementById("playersGrid"); 
+  const registrationHint = document.getElementById("registrationHint");
+  if(registrationHint) {
+    registrationHint.textContent = `أول ${(state.matchSize || DEFAULT_MATCH_SIZE) * 2} لاعبًا أساسي، والبقية احتياط بالترتيب.`;
+  }
   document.getElementById("registrationStatus").textContent=state.registrationOpen?"🟢 باب التسجيل للمباراة القادمة مفتوح الآن":"🔴 باب التسجيل مغلق حالياً من قبل الإدارة"; 
   const announceBox = document.getElementById("registrationAnnouncement");
   if(announceBox){
@@ -3319,7 +3347,8 @@ async function deletePlayer(index){
   const confirmed = await showAppConfirm(`تحذير: هل أنت متأكد من حذف اللاعب (${player.name}) نهائياً؟`, "تأكيد حذف اللاعب");
   if(!confirmed) return; 
   
-  const was10 = state.registrations.length === 10;
+  const requiredRegistrations = (state.matchSize || DEFAULT_MATCH_SIZE) * 2;
+  const wasFull = state.registrations.length === requiredRegistrations;
 
   state.players.splice(index,1); 
   state.registrations=state.registrations.filter(p=>p!==player.name); 
@@ -3329,11 +3358,11 @@ async function deletePlayer(index){
   state.teams.A=state.teams.A.filter(p=>p.name!==player.name); 
   state.teams.B=state.teams.B.filter(p=>p.name!==player.name); 
   
-  if(state.registrations.length<10&&state.reserves.length>0) state.registrations.push(state.reserves.shift()); 
+  if(state.registrations.length < requiredRegistrations && state.reserves.length > 0) state.registrations.push(state.reserves.shift()); 
   
-  if (state.registrations.length === 10 && was10) {
+  if (state.registrations.length === requiredRegistrations && wasFull) {
     performDrawLogic();
-  } else if (state.registrations.length < 10) {
+  } else if (state.registrations.length < requiredRegistrations) {
     state.teams = {A:[], B:[]};
   }
 
